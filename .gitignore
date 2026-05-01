@@ -1,0 +1,14 @@
+# Local database (created on server at runtime)
+/data/*.db
+/data/*.sqlite
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local scratch files
+/_test_*.php
+/_out.png
+/_curl_out.bin
