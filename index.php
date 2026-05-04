@@ -241,6 +241,10 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
       const list = document.getElementById('list');
       try {
         const r = await fetch(API, { credentials: 'same-origin' });
+        if (r.status === 503) {
+          window.location.href = 'install.php';
+          return;
+        }
         if (r.status === 401) {
           window.location.href = 'login.php?next=' + encodeURIComponent(window.location.pathname + window.location.search);
           return;
@@ -282,6 +286,10 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
             if (!confirm('Delete this timer?')) return;
             const id = btn.getAttribute('data-id');
             const dr = await fetch(API + '?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'same-origin' });
+            if (dr.status === 503) {
+              window.location.href = 'install.php';
+              return;
+            }
             if (dr.status === 401) {
               window.location.href = 'login.php?next=' + encodeURIComponent(window.location.pathname + window.location.search);
               return;
@@ -323,6 +331,10 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
       btn.disabled = true;
       try {
         const r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (r.status === 503) {
+          window.location.href = 'install.php';
+          return;
+        }
         if (r.status === 401) {
           window.location.href = 'login.php?next=' + encodeURIComponent(window.location.pathname + window.location.search);
           return;

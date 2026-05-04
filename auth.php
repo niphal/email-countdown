@@ -31,6 +31,12 @@ function auth_password_hash_configured(): bool
     return $h !== '' && str_starts_with($h, '$2');
 }
 
+/** True when dashboard password is configured (same as auth_password_hash_configured). */
+function auth_is_installed(): bool
+{
+    return auth_password_hash_configured();
+}
+
 function auth_start_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -150,6 +156,10 @@ function auth_redirect_target(?string $next): string
 
 function auth_require_login_redirect(): void
 {
+    if (!auth_is_installed()) {
+        header('Location: install.php', true, 302);
+        exit;
+    }
     if (auth_is_logged_in()) {
         return;
     }
@@ -160,6 +170,9 @@ function auth_require_login_redirect(): void
 
 function auth_require_api_login(): void
 {
+    if (!auth_is_installed()) {
+        json_response(['error' => 'Not installed', 'install' => 'install.php'], 503);
+    }
     if (auth_is_logged_in()) {
         return;
     }

@@ -7,21 +7,24 @@ require_once __DIR__ . '/auth.php';
 
 auth_start_session();
 
+if (!auth_is_installed()) {
+    header('Location: install.php', true, 302);
+    exit;
+}
+
 if (auth_is_logged_in()) {
     header('Location: ' . auth_redirect_target($_GET['next'] ?? null));
     exit;
 }
 
 $error = '';
-$setupHint = !auth_password_hash_configured();
+$installedBanner = isset($_GET['installed']);
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!auth_verify_csrf($_POST['csrf'] ?? null)) {
         $error = 'Invalid session. Refresh the page and try again.';
     } elseif (auth_is_locked()) {
         $error = 'Too many attempts. Try again in ' . auth_lock_seconds_remaining() . ' seconds.';
-    } elseif (!auth_password_hash_configured()) {
-        $error = 'Password is not configured. Create data/secrets.php — see README.';
     } elseif (auth_attempt_login((string) ($_POST['password'] ?? ''))) {
         header('Location: ' . auth_redirect_target($_POST['next'] ?? ($_GET['next'] ?? null)));
         exit;
@@ -54,11 +57,13 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; }
     .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }
     .hint { font-size:0.82rem; color:var(--muted); margin-top:1rem; line-height:1.45; }
+    .ok { color:#7ae582; font-size:0.88rem; margin-bottom:0.75rem; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Sign in</h1>
+    <?php if ($installedBanner): ?><p class="ok">Installation finished. Sign in with the password you chose.</p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
     <form method="post" action="login.php">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
@@ -67,9 +72,6 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
       <button type="submit">Continue</button>
     </form>
-    <?php if ($setupHint): ?>
-      <p class="hint">First time: from the project folder run<br><code>php scripts/setup_secrets.php &quot;your-strong-password&quot;</code><br>Then reload this page and sign in.</p>
-    <?php endif; ?>
   </div>
 </body>
 </html>

@@ -8,7 +8,7 @@ Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.
 - A web server (Apache, nginx + PHP-FPM, etc.)
 - Write access to `data/` so SQLite can create `data/app.db`
 
-## Install
+## Install (WordPress-style, in the browser)
 
 1. Clone the repository (or copy files into your web root).
 
@@ -18,32 +18,35 @@ Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.
 
 2. Point the site’s document root at the project folder, or serve it from a subdirectory (e.g. `/email_timer/`).
 
-3. **Configure login** (creates `data/secrets.php` and a bcrypt hash):
+3. **Open `install.php` in your browser** (e.g. `https://yourdomain.com/email_timer/install.php`).  
+   It checks PHP extensions and `data/` permissions, then asks for an **administrator password** and writes **`data/secrets.php`** (gitignored). After that you are sent to **login**.
 
-   ```bash
-   php scripts/setup_secrets.php "your-strong-password"
-   ```
-
-   To replace an existing hash: `php scripts/setup_secrets.php --force "new-password"`  
-   (Advanced: `php scripts/hash_password.php` only prints a hash if you prefer to edit the file by hand.)  
-   `data/secrets.php` is **gitignored** — do not commit it.
-
-4. Ensure `data/` exists and is writable by the PHP user. The app creates `data/app.db` on first use.
+4. Visiting **`index.php`** before install redirects to **`install.php`**. After install, `install.php` only shows “Already installed” unless you remove `data/secrets.php` to run setup again.
 
 5. On Apache, `data/.htaccess` denies HTTP access to the database directory.
 
-6. Enable **GD** in `php.ini` if images fail (`extension=gd`), then restart PHP / the web server.
+6. Enable **GD** in `php.ini` if image generation fails (`extension=gd`), then restart PHP / the web server.
+
+### CLI alternative (same result as the web installer)
+
+```bash
+php scripts/setup_secrets.php "your-strong-password"
+```
+
+Replace an existing hash: `php scripts/setup_secrets.php --force "new-password"`.  
+`php scripts/hash_password.php` only prints a bcrypt line if you edit `secrets.php` by hand.
 
 ## Local (XAMPP on Windows)
 
-Place the project under `htdocs` (for example `htdocs/email_timer`), start Apache, and open:
+Place the project under `htdocs` (for example `htdocs/email_timer`), start Apache, then open:
 
-`http://localhost/email_timer/`
+`http://localhost/email_timer/install.php`
 
-Then open `login.php`, sign in with the password you hashed, and you’ll be redirected to the dashboard.
+Finish the wizard, then use **Sign in** on the dashboard.
 
 ## Authentication
 
+- Until **`data/secrets.php`** contains a valid password hash, **`index.php`** redirects to **`install.php`** (and the API returns **503** with an `install` hint).
 - **`index.php`** (dashboard) and **`api/timers.php`** require a signed-in session (password from `data/secrets.php`).
 - **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
 - Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
@@ -83,13 +86,14 @@ Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }
 ## Project layout
 
 ```
+install.php           # Web installer (run once)
 auth.php              # Session login helpers
 login.php / logout.php
 api/timers.php        # JSON CRUD (auth required)
 config.php            # SQLite path + helpers
 timer.php             # GIF (default) or PNG image (public)
 index.php             # Dashboard UI (auth required)
-scripts/hash_password.php
+scripts/setup_secrets.php, scripts/hash_password.php
 lib/GifCreator.php
 data/                 # DB, secrets, .htaccess (secrets + DB not in git)
 ```

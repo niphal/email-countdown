@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * First-time auth setup: creates data/secrets.php from the example and writes password_hash.
+ * For a browser wizard, open install.php instead.
  *
  * Usage (from project root):
  *   php scripts/setup_secrets.php "your-strong-password"
