@@ -18,11 +18,20 @@ Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.
 
 2. Point the site’s document root at the project folder, or serve it from a subdirectory (e.g. `/email_timer/`).
 
-3. Ensure `data/` exists and is writable by the PHP user. The app creates `data/app.db` on first use.
+3. **Configure login:** copy `data/secrets.example.php` to `data/secrets.php`, generate a bcrypt hash, and paste it into `password_hash`:
 
-4. On Apache, `data/.htaccess` denies HTTP access to the database directory.
+   ```bash
+   php scripts/hash_password.php "your-strong-password"
+   ```
 
-5. Enable **GD** in `php.ini` if images fail (`extension=gd`), then restart PHP / the web server.
+   Put the printed line into `data/secrets.php` as `'password_hash' => '...',`  
+   `data/secrets.php` is **gitignored** — do not commit it.
+
+4. Ensure `data/` exists and is writable by the PHP user. The app creates `data/app.db` on first use.
+
+5. On Apache, `data/.htaccess` denies HTTP access to the database directory.
+
+6. Enable **GD** in `php.ini` if images fail (`extension=gd`), then restart PHP / the web server.
 
 ## Local (XAMPP on Windows)
 
@@ -30,9 +39,19 @@ Place the project under `htdocs` (for example `htdocs/email_timer`), start Apach
 
 `http://localhost/email_timer/`
 
+Then open `login.php`, sign in with the password you hashed, and you’ll be redirected to the dashboard.
+
+## Authentication
+
+- **`index.php`** (dashboard) and **`api/timers.php`** require a signed-in session (password from `data/secrets.php`).
+- **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
+- Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
+- Login form includes a **CSRF** token. After **5 failed** password attempts, login is blocked for **60 seconds**.
+- Use **Log out** (or `logout.php`) on shared machines.
+
 ## Usage
 
-1. Open the web UI (`index.php`).
+1. Open the web UI and sign in (`index.php` redirects to `login.php` when needed).
 2. Create a timer (end time, colors, optional label).
 3. Use **Copy HTML** and paste into your ESP’s **custom HTML** (Braze HTML editor, etc.).
 4. Replace the placeholder `https://example.com` link with your real landing URL.
@@ -58,17 +77,20 @@ Place the project under `htdocs` (for example `htdocs/email_timer`), start Apach
 | `POST` | `api/timers.php` | Create timer (JSON body: `name`, `ends_at`, optional `label`, colors, `width`, `height`) |
 | `DELETE` | `api/timers.php?id=ID` | Delete timer |
 
-There is no built-in authentication; deploy behind a private network, HTTP auth, or your own gate if the UI should not be public.
+Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }`.
 
 ## Project layout
 
 ```
-api/timers.php   # JSON CRUD
-config.php       # SQLite path + helpers
-timer.php        # GIF (default) or PNG image
-index.php        # Dashboard UI
+auth.php              # Session login helpers
+login.php / logout.php
+api/timers.php        # JSON CRUD (auth required)
+config.php            # SQLite path + helpers
+timer.php             # GIF (default) or PNG image (public)
+index.php             # Dashboard UI (auth required)
+scripts/hash_password.php
 lib/GifCreator.php
-data/            # SQLite DB (not in git) + .htaccess
+data/                 # DB, secrets, .htaccess (secrets + DB not in git)
 ```
 
 ## License

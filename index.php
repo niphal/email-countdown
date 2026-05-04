@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auth.php';
+auth_start_session();
+auth_require_login_redirect();
 // Touch DB so fresh installs have data dir
 db();
 
@@ -141,11 +144,18 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
     .toast { position: fixed; bottom: 1.25rem; right: 1.25rem; background: var(--surface); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; display: none; }
     .toast.show { display: block; }
     .empty { color: var(--muted); font-size: 0.95rem; }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+    .topbar h1 { margin-bottom: 0; }
+    a.logout { color: var(--muted); font-size: 0.9rem; text-decoration: none; padding: 0.35rem 0; }
+    a.logout:hover { color: var(--text); text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Email countdown timers</h1>
+    <div class="topbar">
+      <h1>Email countdown timers</h1>
+      <a class="logout" href="logout.php">Log out</a>
+    </div>
     <p class="lede">Create timers that render as animated GIFs (about 20 one-second frames from load time)—safe for Braze and other ESPs (no JavaScript in email). Add <code>?format=png</code> to the image URL for a single static PNG instead. Paste the HTML into the Braze email editor.</p>
 
     <div class="panel">
@@ -230,7 +240,11 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
     async function loadList() {
       const list = document.getElementById('list');
       try {
-        const r = await fetch(API);
+        const r = await fetch(API, { credentials: 'same-origin' });
+        if (r.status === 401) {
+          window.location.href = 'login.php?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+          return;
+        }
         const j = await r.json();
         if (!j.timers || !j.timers.length) {
           list.innerHTML = '<p class="empty">No timers yet. Create one above.</p>';
@@ -267,7 +281,15 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
           btn.addEventListener('click', async () => {
             if (!confirm('Delete this timer?')) return;
             const id = btn.getAttribute('data-id');
-            await fetch(API + '?id=' + encodeURIComponent(id), { method: 'DELETE' });
+            const dr = await fetch(API + '?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'same-origin' });
+            if (dr.status === 401) {
+              window.location.href = 'login.php?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+              return;
+            }
+            if (!dr.ok) {
+              toast('Delete failed');
+              return;
+            }
             toast('Deleted');
             loadList();
           });
@@ -300,7 +322,11 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
       const btn = document.getElementById('btn-create');
       btn.disabled = true;
       try {
-        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (r.status === 401) {
+          window.location.href = 'login.php?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+          return;
+        }
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Save failed');
         toast('Timer created');

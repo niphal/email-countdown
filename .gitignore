@@ -2,6 +2,9 @@
 /data/*.db
 /data/*.sqlite
 
+# Auth (copy from secrets.example.php)
+/data/secrets.php
+
 # OS / editor
 .DS_Store
 Thumbs.db
