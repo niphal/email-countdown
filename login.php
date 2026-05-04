@@ -68,7 +68,7 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       <button type="submit">Continue</button>
     </form>
     <?php if ($setupHint): ?>
-      <p class="hint">First time: copy <code>data/secrets.example.php</code> to <code>data/secrets.php</code>, add a <code>password_hash</code> from <code>php scripts/hash_password.php &quot;…&quot;</code>, then reload this page.</p>
+      <p class="hint">First time: from the project folder run<br><code>php scripts/setup_secrets.php &quot;your-strong-password&quot;</code><br>Then reload this page and sign in.</p>
     <?php endif; ?>
   </div>
 </body>

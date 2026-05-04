@@ -18,13 +18,14 @@ Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.
 
 2. Point the site’s document root at the project folder, or serve it from a subdirectory (e.g. `/email_timer/`).
 
-3. **Configure login:** copy `data/secrets.example.php` to `data/secrets.php`, generate a bcrypt hash, and paste it into `password_hash`:
+3. **Configure login** (creates `data/secrets.php` and a bcrypt hash):
 
    ```bash
-   php scripts/hash_password.php "your-strong-password"
+   php scripts/setup_secrets.php "your-strong-password"
    ```
 
-   Put the printed line into `data/secrets.php` as `'password_hash' => '...',`  
+   To replace an existing hash: `php scripts/setup_secrets.php --force "new-password"`  
+   (Advanced: `php scripts/hash_password.php` only prints a hash if you prefer to edit the file by hand.)  
    `data/secrets.php` is **gitignored** — do not commit it.
 
 4. Ensure `data/` exists and is writable by the PHP user. The app creates `data/app.db` on first use.
