@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/auth.php';
 auth_start_session();
 auth_require_login_redirect();
@@ -56,7 +57,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     }
     .panel h2 { font-family: var(--font-ui); font-size: 1rem; margin: 0 0 1rem; font-weight: 600; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
-    input[type="text"], input[type="datetime-local"], input[type="number"] {
+    input[type="text"], input[type="datetime-local"], input[type="number"], select {
       width: 100%;
       padding: 0.55rem 0.65rem;
       border-radius: 8px;
@@ -171,6 +172,18 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
           <label for="height">Height (px)</label>
           <input type="number" id="height" value="140" min="80" max="400" step="10">
         </div>
+        <div>
+          <label for="font_key">Timer font (image)</label>
+          <select id="font_key" name="font_key">
+            <?php foreach (timer_font_labels() as $val => $lab): ?>
+            <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div>
+          <label for="font_size_main">Main text size (px)</label>
+          <input type="number" id="font_size_main" value="32" min="14" max="72" step="1">
+        </div>
       </form>
       <div class="row-actions">
         <button type="submit" form="create-form" id="btn-create">Create timer</button>
@@ -246,7 +259,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
           const ends = new Date(t.ends_at * 1000);
           card.innerHTML =
             '<h3>' + escapeHtml(t.name) + '</h3>' +
-            '<div class="meta">Ends (UTC): ' + ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z · id ' + escapeHtml(t.id.slice(0, 8)) + '…</div>' +
+            '<div class="meta">Ends (UTC): ' + ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z · id ' + escapeHtml(t.id.slice(0, 8)) + '… · ' + escapeHtml(t.font_key || 'system') + ' · ' + Number(t.font_size_main || 32) + 'px</div>' +
             '<div class="preview"></div>' +
             '<div class="embed" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width)) + '</div>' +
             '<div class="row-actions">' +
@@ -311,6 +324,8 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         accent_color: document.getElementById('ac').value,
         width: parseInt(document.getElementById('width').value, 10) || 560,
         height: parseInt(document.getElementById('height').value, 10) || 140,
+        font_key: document.getElementById('font_key').value,
+        font_size_main: parseInt(document.getElementById('font_size_main').value, 10) || 32,
       };
       const btn = document.getElementById('btn-create');
       btn.disabled = true;
@@ -333,6 +348,8 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         document.getElementById('ac').value = '#e94560';
         document.getElementById('width').value = '560';
         document.getElementById('height').value = '140';
+        document.getElementById('font_key').value = 'system';
+        document.getElementById('font_size_main').value = '32';
         loadList();
       } catch (err) {
         toast(err.message || 'Error');

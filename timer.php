@@ -6,6 +6,7 @@ const TIMER_ANIMATION_FRAMES = 20;
 const TIMER_FRAME_DELAY_CS = 100;
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/timer_fonts.php';
 
 if (!function_exists('imagecreatetruecolor')) {
     http_response_code(503);
@@ -28,7 +29,7 @@ if ($overrideEnd !== null && $overrideEnd <= 0) {
     $overrideEnd = null;
 }
 
-$stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height FROM timers WHERE id = ?');
+$stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main FROM timers WHERE id = ?');
 $stmt->execute([$id]);
 $row = $stmt->fetch();
 if (!$row) {
@@ -45,6 +46,14 @@ $bg = parse_hex($row['bg_color']);
 $fg = parse_hex($row['text_color']);
 $ac = parse_hex($row['accent_color']);
 $label = (string) $row['label'];
+$fontKey = timer_is_valid_font_key((string) ($row['font_key'] ?? 'system')) ? (string) $row['font_key'] : 'system';
+$fontSizeMain = (int) ($row['font_size_main'] ?? 32);
+if ($fontSizeMain < 14) {
+    $fontSizeMain = 14;
+}
+if ($fontSizeMain > 72) {
+    $fontSizeMain = 72;
+}
 
 $format = strtolower((string) ($_GET['format'] ?? 'gif'));
 $t0 = time();
@@ -54,7 +63,7 @@ header('Cache-Control: private, max-age=60');
 if ($format === 'png') {
     header('Content-Type: image/png');
     $remaining = max(0, $endsAt - $t0);
-    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining);
+    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontKey, $fontSizeMain);
     imagepng($im);
     imagedestroy($im);
     exit;
@@ -67,7 +76,7 @@ $gifBinary = null;
 try {
     for ($k = 0; $k < TIMER_ANIMATION_FRAMES; $k++) {
         $remaining = max(0, $endsAt - ($t0 + $k));
-        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining);
+        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontKey, $fontSizeMain);
     }
     $durations = array_fill(0, TIMER_ANIMATION_FRAMES, TIMER_FRAME_DELAY_CS);
     $creator = new GifCreator();
@@ -105,27 +114,12 @@ function parse_hex(string $hex): array
     ];
 }
 
-function pick_font(): ?string
-{
-    $candidates = [
-        'C:\\Windows\\Fonts\\segoeuib.ttf',
-        'C:\\Windows\\Fonts\\arialbd.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-    ];
-    foreach ($candidates as $p) {
-        if (is_readable($p)) {
-            return $p;
-        }
-    }
-    return null;
-}
-
 /**
  * @param array{0:int,1:int,2:int} $bg
  * @param array{0:int,1:int,2:int} $fg
  * @param array{0:int,1:int,2:int} $ac
  */
-function render_timer_frame(int $w, int $h, array $bg, array $fg, array $ac, string $label, int $remaining): \GdImage
+function render_timer_frame(int $w, int $h, array $bg, array $fg, array $ac, string $label, int $remaining, string $fontKey, int $fontSizeMain): \GdImage
 {
     $im = imagecreatetruecolor($w, $h);
     $colBg = imagecolorallocate($im, $bg[0], $bg[1], $bg[2]);
@@ -150,9 +144,9 @@ function render_timer_frame(int $w, int $h, array $bg, array $fg, array $ac, str
         $sub = $label !== '' ? $label : 'Time remaining';
     }
 
-    $font = pick_font();
-    $fontSizeMain = (int) max(14, min(48, $h / 4));
-    $fontSizeSub = (int) max(10, $fontSizeMain / 2);
+    $font = timer_resolve_font($fontKey);
+    $fontSizeMain = (int) max(10, min(72, $fontSizeMain, (int) ($h * 0.52)));
+    $fontSizeSub = (int) max(8, min(40, (int) round($fontSizeMain * 0.45)));
 
     if ($font !== null && function_exists('imagettfbbox')) {
         draw_ttf_centered($im, $font, $fontSizeMain, $text, $colAc, $w / 2, $h * 0.42);

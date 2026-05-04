@@ -124,9 +124,27 @@ function db(): PDO
         label TEXT NOT NULL DEFAULT "",
         width INTEGER NOT NULL DEFAULT 560,
         height INTEGER NOT NULL DEFAULT 140,
+        font_key TEXT NOT NULL DEFAULT "system",
+        font_size_main INTEGER NOT NULL DEFAULT 32,
         created_at INTEGER NOT NULL
     )');
+    db_migrate_timers($pdo);
+
     return $pdo;
+}
+
+function db_migrate_timers(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(timers)') as $row) {
+        $cols[(string) $row['name']] = true;
+    }
+    if (!isset($cols['font_key'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN font_key TEXT NOT NULL DEFAULT "system"');
+    }
+    if (!isset($cols['font_size_main'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN font_size_main INTEGER NOT NULL DEFAULT 32');
+    }
 }
 
 function json_response(mixed $data, int $code = 200): void

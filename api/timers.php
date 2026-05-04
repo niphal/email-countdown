@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
+require_once dirname(__DIR__) . '/lib/timer_fonts.php';
 require_once dirname(__DIR__) . '/auth.php';
 
 auth_start_session();
@@ -12,7 +13,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
     if ($method === 'GET') {
-        $stmt = db()->query('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, created_at FROM timers ORDER BY created_at DESC');
+        $stmt = db()->query('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, created_at FROM timers ORDER BY created_at DESC');
         json_response(['timers' => $stmt->fetchAll()]);
     }
 
@@ -31,9 +32,14 @@ try {
         $label = mb_substr((string) ($body['label'] ?? ''), 0, 120);
         $w = clamp_int((int) ($body['width'] ?? 560), 200, 900);
         $h = clamp_int((int) ($body['height'] ?? 140), 80, 400);
+        $fontKey = (string) ($body['font_key'] ?? 'system');
+        if (!timer_is_valid_font_key($fontKey)) {
+            $fontKey = 'system';
+        }
+        $fontSizeMain = clamp_int((int) ($body['font_size_main'] ?? 32), 14, 72);
         $now = time();
-        $stmt = db()->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
-        $stmt->execute([$id, $name, $endsAt, $bg, $fg, $ac, $label, $w, $h, $now]);
+        $stmt = db()->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+        $stmt->execute([$id, $name, $endsAt, $bg, $fg, $ac, $label, $w, $h, $fontKey, $fontSizeMain, $now]);
         json_response(['id' => $id]);
     }
 
