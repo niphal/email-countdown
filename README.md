@@ -40,7 +40,7 @@ Replace an existing hash: `php scripts/setup_secrets.php --force "new-password"`
 
 Place the project under `htdocs` (for example `htdocs/email_timer`), start Apache, then open:
 
-`http://localhost/email_timer/install.php`
+`http://YOUR_HOST/email_timer/install.php` (or open `install.php` under whatever path you deployed)
 
 Finish the wizard, then use **Sign in** on the dashboard.
 
@@ -58,13 +58,13 @@ Finish the wizard, then use **Sign in** on the dashboard.
 1. Open the web UI and sign in (`index.php` redirects to `login.php` when needed).
 2. Create a timer (end time, colors, optional label).
 3. Use **Copy HTML** and paste into your ESP’s **custom HTML** (Braze HTML editor, etc.).
-4. Replace the placeholder `https://example.com` link with your real landing URL.
-5. For production email, the image URL must be **HTTPS** on a public host (not `localhost`).
+4. Replace the `href="#"` link in the snippet with your real landing URL.
+5. Copied HTML uses a **root-relative** image `src` (e.g. `/email_timer/timer.php?id=…`). In production, mail should be served over **HTTPS**; prepend your public origin on that path if your ESP does not resolve root-relative URLs correctly.
 
 ### Timer image URL
 
 - **Default (animated GIF):**  
-  `https://YOUR_DOMAIN/PATH/timer.php?id=TIMER_ID`  
+  `/PATH/timer.php?id=TIMER_ID` (root-relative; prepend `https://your-public-site` when pasting into some ESPs)  
   Steps the countdown about once per second for up to 20 seconds after each load (client behavior may vary).
 
 - **Static PNG:**  
@@ -90,7 +90,7 @@ install.php           # Web installer (run once)
 auth.php              # Session login helpers
 login.php / logout.php
 api/timers.php        # JSON CRUD (auth required)
-config.php            # SQLite path + helpers
+config.php            # SQLite, JSON helpers, root-relative timer URL helper
 timer.php             # GIF (default) or PNG image (public)
 index.php             # Dashboard UI (auth required)
 scripts/setup_secrets.php, scripts/hash_password.php

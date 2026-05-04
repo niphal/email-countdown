@@ -7,26 +7,7 @@ auth_require_login_redirect();
 // Touch DB so fresh installs have data dir
 db();
 
-$script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
-$dir = dirname($script);
-if ($dir === '/' || $dir === '\\' || $dir === '.') {
-    $appPath = '';
-} else {
-    $appPath = rtrim($dir, '/');
-}
-$timerPath = ($appPath === '' ? '' : $appPath) . '/timer.php';
-if ($timerPath === '' || $timerPath[0] !== '/') {
-    $timerPath = '/' . ltrim($timerPath, '/');
-}
-
-$https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
-    || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
-$origin = ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
-
-$timerQuery = '?id=';
-$timerPreviewPrefix = $timerPath . $timerQuery;
-$timerEmbedPrefix = $origin . $timerPath . $timerQuery;
+$timerUrlPrefix = app_timer_url_prefix();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -200,7 +181,7 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
     <div class="panel">
       <h2>Braze notes</h2>
       <p class="note" style="margin:0;">
-        Use <strong>Custom HTML</strong> or the HTML block and paste the <code>&lt;img&gt;</code> snippet. The default URL serves an <strong>animated GIF</strong> that steps the countdown once per second for up to 20 seconds after each load (then may stop or behave per the client). Each open can refresh the asset; caching is normal.
+        Use <strong>Custom HTML</strong> or the HTML block and paste the <code>&lt;img&gt;</code> snippet. Image <code>src</code> is <strong>root-relative</strong> (starts with <code>/</code>); if your ESP requires a full URL, prepend your public site origin (same path). The default URL serves an <strong>animated GIF</strong> that steps the countdown once per second for up to 20 seconds after each load (then may stop or behave per the client). Each open can refresh the asset; caching is normal. Replace the <code>href=&quot;#&quot;</code> wrapper link with your real CTA URL.
         For a <strong>per-recipient</strong> end time, append <code>&amp;end=</code> with a Unix timestamp from Liquid, for example
         <code class="embed" style="margin-top:0.5rem;display:block;">&amp;end={{event_properties.end_ts}}</code>
         (your property must be an integer Unix time in seconds). The query override takes precedence over the saved end time.
@@ -211,10 +192,8 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
 
   <script>
     const API = 'api/timers.php';
-    /** Same origin; avoids mixed content if the dashboard is HTTPS */
-    const TIMER_PREVIEW_PREFIX = <?= json_encode($timerPreviewPrefix, JSON_THROW_ON_ERROR) ?>;
-    /** Absolute URL for pasted email HTML */
-    const TIMER_EMBED_PREFIX = <?= json_encode($timerEmbedPrefix, JSON_THROW_ON_ERROR) ?>;
+    /** Root-relative timer URL (scheme/host from the inbox when the email is opened) */
+    const TIMER_URL_PREFIX = <?= json_encode($timerUrlPrefix, JSON_THROW_ON_ERROR) ?>;
 
     function toast(msg) {
       const t = document.getElementById('toast');
@@ -231,8 +210,8 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
 
     function embedHtml(id, width) {
       const w = width || 560;
-      const src = TIMER_EMBED_PREFIX + encodeURIComponent(id);
-      return '<a href="https://example.com" style="text-decoration:none;">\n' +
+      const src = TIMER_URL_PREFIX + encodeURIComponent(id);
+      return '<a href="#" style="text-decoration:none;">\n' +
         '  <img src="' + src + '" width="' + w + '" alt="Countdown" style="display:block;border:0;max-width:100%;height:auto;" />\n' +
         '</a>';
     }
@@ -270,7 +249,7 @@ $timerEmbedPrefix = $origin . $timerPath . $timerQuery;
           const img = document.createElement('img');
           img.alt = 'Preview';
           img.loading = 'lazy';
-          img.src = TIMER_PREVIEW_PREFIX + encodeURIComponent(t.id) + '&_=' + Date.now();
+          img.src = TIMER_URL_PREFIX + encodeURIComponent(t.id) + '&_=' + Date.now();
           card.querySelector('.preview').appendChild(img);
           list.appendChild(card);
         }

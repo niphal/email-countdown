@@ -5,6 +5,33 @@ declare(strict_types=1);
 const APP_ROOT = __DIR__;
 const DB_PATH = APP_ROOT . '/data/app.db';
 
+/**
+ * Root-relative timer image URL prefix, e.g. "/email_timer/timer.php?id=".
+ * Derived from SCRIPT_NAME only (no HTTP_HOST / scheme). Works when the request
+ * is handled under /api/* by normalizing to the parent app directory first.
+ */
+function app_timer_url_prefix(): string
+{
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
+    if (str_contains($script, '/api/')) {
+        $appPath = dirname(dirname($script));
+    } else {
+        $appPath = dirname($script);
+    }
+    $appPath = str_replace('\\', '/', (string) $appPath);
+    $appPath = rtrim($appPath, '/');
+    if ($appPath === '' || $appPath === '.' || $appPath === '/') {
+        $timerPath = '/timer.php';
+    } else {
+        $timerPath = $appPath . '/timer.php';
+    }
+    if ($timerPath[0] !== '/') {
+        $timerPath = '/' . ltrim($timerPath, '/');
+    }
+
+    return $timerPath . '?id=';
+}
+
 function db(): PDO
 {
     static $pdo = null;
