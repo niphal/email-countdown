@@ -36,13 +36,11 @@ php scripts/setup_secrets.php "your-strong-password"
 Replace an existing hash: `php scripts/setup_secrets.php --force "new-password"`.  
 `php scripts/hash_password.php` only prints a bcrypt line if you edit `secrets.php` by hand.
 
-## Local (XAMPP on Windows)
+## Local development (any PHP stack)
 
-Place the project under `htdocs` (for example `htdocs/email_timer`), start Apache, then open:
+Nothing in the code assumes **XAMPP**. Deploy like any small PHP app: PHP **8+**, a web server (**Apache**, **nginx** + **php-fpm**, **Caddy**, built-in `php -S` for quick tests), SQLite + GD enabled in `php.ini`, and a writable `data/` directory. On production Linux/VPS hosting this is the normal setup.
 
-`http://YOUR_HOST/email_timer/install.php` (or open `install.php` under whatever path you deployed)
-
-Finish the wizard, then use **Sign in** on the dashboard.
+Point the document root (or a URL path) at this project, then open `install.php` under that path (e.g. `https://dev.example.com/email_timer/install.php`). Finish the wizard, then sign in.
 
 ## Authentication
 

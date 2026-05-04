@@ -10,7 +10,7 @@ require_once __DIR__ . '/config.php';
 if (!function_exists('imagecreatetruecolor')) {
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'PHP GD is not enabled. In XAMPP open php\\php.ini, set extension=gd (uncomment the line), save, and restart Apache.';
+    echo 'PHP GD is not enabled. In php.ini set extension=gd, then restart PHP or your web server.';
     exit;
 }
 
