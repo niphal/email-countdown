@@ -46,13 +46,28 @@ $bg = parse_hex($row['bg_color']);
 $fg = parse_hex($row['text_color']);
 $ac = parse_hex($row['accent_color']);
 $label = (string) $row['label'];
-$fontKey = timer_is_valid_font_key((string) ($row['font_key'] ?? 'system')) ? (string) $row['font_key'] : 'system';
+$fontKey = timer_normalize_font_key((string) ($row['font_key'] ?? 'noto_sans_bold'));
 $fontSizeMain = (int) ($row['font_size_main'] ?? 32);
 if ($fontSizeMain < 14) {
     $fontSizeMain = 14;
 }
 if ($fontSizeMain > 72) {
     $fontSizeMain = 72;
+}
+
+if (!timer_gd_has_freetype()) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'PHP GD is missing FreeType support, so TrueType fonts cannot render. Install a PHP build where GD is linked with FreeType (often shown as "FreeType Support => enabled" in phpinfo).';
+    exit;
+}
+
+$fontPath = timer_ensure_ttf_path($fontKey);
+if ($fontPath === null) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Timer fonts could not be downloaded. Ensure the data/fonts directory is writable and that PHP can make outbound HTTPS requests (curl extension or allow_url_fopen). Fonts are fetched once from Google Fonts open-source repositories.';
+    exit;
 }
 
 $format = strtolower((string) ($_GET['format'] ?? 'gif'));
@@ -63,7 +78,7 @@ header('Cache-Control: private, max-age=60');
 if ($format === 'png') {
     header('Content-Type: image/png');
     $remaining = max(0, $endsAt - $t0);
-    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontKey, $fontSizeMain);
+    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain);
     imagepng($im);
     imagedestroy($im);
     exit;
@@ -76,7 +91,7 @@ $gifBinary = null;
 try {
     for ($k = 0; $k < TIMER_ANIMATION_FRAMES; $k++) {
         $remaining = max(0, $endsAt - ($t0 + $k));
-        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontKey, $fontSizeMain);
+        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain);
     }
     $durations = array_fill(0, TIMER_ANIMATION_FRAMES, TIMER_FRAME_DELAY_CS);
     $creator = new GifCreator();
@@ -119,7 +134,7 @@ function parse_hex(string $hex): array
  * @param array{0:int,1:int,2:int} $fg
  * @param array{0:int,1:int,2:int} $ac
  */
-function render_timer_frame(int $w, int $h, array $bg, array $fg, array $ac, string $label, int $remaining, string $fontKey, int $fontSizeMain): \GdImage
+function render_timer_frame(int $w, int $h, array $bg, array $fg, array $ac, string $label, int $remaining, string $fontPath, int $fontSizeMain): \GdImage
 {
     $im = imagecreatetruecolor($w, $h);
     $colBg = imagecolorallocate($im, $bg[0], $bg[1], $bg[2]);
@@ -144,13 +159,12 @@ function render_timer_frame(int $w, int $h, array $bg, array $fg, array $ac, str
         $sub = $label !== '' ? $label : 'Time remaining';
     }
 
-    $font = timer_resolve_font($fontKey);
     $fontSizeMain = (int) max(10, min(72, $fontSizeMain, (int) ($h * 0.52)));
     $fontSizeSub = (int) max(8, min(40, (int) round($fontSizeMain * 0.45)));
 
-    if ($font !== null && function_exists('imagettfbbox')) {
-        draw_ttf_centered($im, $font, $fontSizeMain, $text, $colAc, $w / 2, $h * 0.42);
-        draw_ttf_centered($im, $font, $fontSizeSub, $sub, $colFg, $w / 2, $h * 0.78);
+    if (is_readable($fontPath) && function_exists('imagettfbbox')) {
+        draw_ttf_centered($im, $fontPath, $fontSizeMain, $text, $colAc, $w / 2, $h * 0.42);
+        draw_ttf_centered($im, $fontPath, $fontSizeSub, $sub, $colFg, $w / 2, $h * 0.78);
     } else {
         $y1 = (int) ($h / 2 - imagefontheight(5));
         imagestring_centered($im, 5, $text, $colAc, $y1);

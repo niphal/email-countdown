@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/auth.php';
 
 auth_start_session();
@@ -50,6 +51,11 @@ function install_requirements(): array
         @mkdir($dataDir, 0755, true);
     }
 
+    $fontDir = APP_ROOT . '/data/fonts';
+    if (!is_dir($fontDir)) {
+        @mkdir($fontDir, 0755, true);
+    }
+
     $checks = [
         'php' => [
             'label' => 'PHP 8.0+',
@@ -60,6 +66,21 @@ function install_requirements(): array
             'label' => 'GD extension',
             'ok' => extension_loaded('gd') && function_exists('imagecreatetruecolor'),
             'detail' => extension_loaded('gd') ? 'loaded' : 'missing',
+        ],
+        'gd_freetype' => [
+            'label' => 'GD + FreeType (TrueType in images)',
+            'ok' => timer_gd_has_freetype(),
+            'detail' => timer_gd_has_freetype() ? 'enabled' : 'missing — reinstall PHP with GD linked to FreeType',
+        ],
+        'font_http' => [
+            'label' => 'HTTPS font download (curl or allow_url_fopen)',
+            'ok' => timer_can_fetch_remote_fonts(),
+            'detail' => timer_can_fetch_remote_fonts() ? 'ok' : 'enable curl extension or allow_url_fopen in php.ini',
+        ],
+        'fonts_dir' => [
+            'label' => 'data/fonts writable',
+            'ok' => is_dir($fontDir) && is_writable($fontDir),
+            'detail' => is_dir($fontDir) ? (is_writable($fontDir) ? 'writable' : 'not writable') : 'missing',
         ],
         'pdo_sqlite' => [
             'label' => 'PDO SQLite',
@@ -130,6 +151,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     $error = 'Could not write data/secrets.php. Check permissions on data/.';
                 } else {
                     db();
+                    timer_font_warm_all();
                     header('Location: login.php?installed=1', true, 302);
                     exit;
                 }

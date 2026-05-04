@@ -14,7 +14,12 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 try {
     if ($method === 'GET') {
         $stmt = db()->query('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, created_at FROM timers ORDER BY created_at DESC');
-        json_response(['timers' => $stmt->fetchAll()]);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['font_key'] = timer_normalize_font_key((string) ($row['font_key'] ?? 'noto_sans_bold'));
+        }
+        unset($row);
+        json_response(['timers' => $rows]);
     }
 
     if ($method === 'POST') {
@@ -32,10 +37,7 @@ try {
         $label = mb_substr((string) ($body['label'] ?? ''), 0, 120);
         $w = clamp_int((int) ($body['width'] ?? 560), 200, 900);
         $h = clamp_int((int) ($body['height'] ?? 140), 80, 400);
-        $fontKey = (string) ($body['font_key'] ?? 'system');
-        if (!timer_is_valid_font_key($fontKey)) {
-            $fontKey = 'system';
-        }
+        $fontKey = timer_normalize_font_key((string) ($body['font_key'] ?? 'noto_sans_bold'));
         $fontSizeMain = clamp_int((int) ($body['font_size_main'] ?? 32), 14, 72);
         $now = time();
         $stmt = db()->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');

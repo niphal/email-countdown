@@ -2,6 +2,10 @@
 /data/*.db
 /data/*.sqlite
 
+# Cached TTF from Google Fonts repos (downloaded at install / first image request)
+/data/fonts/*.ttf
+/data/fonts/*.tmp.*
+
 # Auth (copy from secrets.example.php)
 /data/secrets.php
 

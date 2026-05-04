@@ -124,7 +124,7 @@ function db(): PDO
         label TEXT NOT NULL DEFAULT "",
         width INTEGER NOT NULL DEFAULT 560,
         height INTEGER NOT NULL DEFAULT 140,
-        font_key TEXT NOT NULL DEFAULT "system",
+        font_key TEXT NOT NULL DEFAULT "noto_sans_bold",
         font_size_main INTEGER NOT NULL DEFAULT 32,
         created_at INTEGER NOT NULL
     )');
@@ -140,10 +140,14 @@ function db_migrate_timers(PDO $pdo): void
         $cols[(string) $row['name']] = true;
     }
     if (!isset($cols['font_key'])) {
-        $pdo->exec('ALTER TABLE timers ADD COLUMN font_key TEXT NOT NULL DEFAULT "system"');
+        $pdo->exec('ALTER TABLE timers ADD COLUMN font_key TEXT NOT NULL DEFAULT "noto_sans_bold"');
     }
     if (!isset($cols['font_size_main'])) {
         $pdo->exec('ALTER TABLE timers ADD COLUMN font_size_main INTEGER NOT NULL DEFAULT 32');
+    }
+    if (isset($cols['font_key'])) {
+        $pdo->exec("UPDATE timers SET font_key = 'noto_sans_bold' WHERE font_key IN ('system','dejavu_bold','segoe_bold','arial_bold')");
+        $pdo->exec("UPDATE timers SET font_key = 'noto_sans' WHERE font_key = 'dejavu_book'");
     }
 }
 

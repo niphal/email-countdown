@@ -185,6 +185,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
           <input type="number" id="font_size_main" value="32" min="14" max="72" step="1">
         </div>
       </form>
+      <p class="note" style="margin:0 0 1rem;">Image text uses open-licensed TrueType fonts from the official Google Fonts GitHub sources. Each file is downloaded once into <code>data/fonts/</code> on the server (PHP GD cannot use CSS webfonts).</p>
       <div class="row-actions">
         <button type="submit" form="create-form" id="btn-create">Create timer</button>
       </div>
@@ -259,7 +260,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
           const ends = new Date(t.ends_at * 1000);
           card.innerHTML =
             '<h3>' + escapeHtml(t.name) + '</h3>' +
-            '<div class="meta">Ends (UTC): ' + ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z · id ' + escapeHtml(t.id.slice(0, 8)) + '… · ' + escapeHtml(t.font_key || 'system') + ' · ' + Number(t.font_size_main || 32) + 'px</div>' +
+            '<div class="meta">Ends (UTC): ' + ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z · id ' + escapeHtml(t.id.slice(0, 8)) + '… · ' + escapeHtml(t.font_key || 'noto_sans_bold') + ' · ' + Number(t.font_size_main || 32) + 'px</div>' +
             '<div class="preview"></div>' +
             '<div class="embed" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width)) + '</div>' +
             '<div class="row-actions">' +
@@ -348,7 +349,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         document.getElementById('ac').value = '#e94560';
         document.getElementById('width').value = '560';
         document.getElementById('height').value = '140';
-        document.getElementById('font_key').value = 'system';
+        document.getElementById('font_key').value = 'noto_sans_bold';
         document.getElementById('font_size_main').value = '32';
         loadList();
       } catch (err) {
