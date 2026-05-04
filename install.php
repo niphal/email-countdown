@@ -109,26 +109,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } elseif ($pw !== $pw2) {
             $error = 'Passwords do not match.';
         } else {
+            $public = trim((string) ($_POST['public_base_url'] ?? ''));
+            if ($public !== '') {
+                if (!preg_match('#^https://#i', $public)) {
+                    $error = 'Public URL for images must start with https://';
+                } elseif (filter_var($public, FILTER_VALIDATE_URL) === false) {
+                    $error = 'Invalid public URL for images.';
+                }
+            }
+            if ($error !== '') {
+                // leave POST handler; fall through to form
+            } else {
             $hash = password_hash($pw, PASSWORD_DEFAULT);
             if ($hash === false) {
                 $error = 'Could not hash password.';
             } else {
-                $export = var_export($hash, true);
                 $target = auth_secrets_path();
-                $body = <<<PHP
-<?php
-
-declare(strict_types=1);
-
-/**
- * Dashboard / API password (bcrypt). Do not commit this file.
- * Created by install.php
- */
-return [
-    'password_hash' => {$export},
-];
-
-PHP;
+                $body = app_format_secrets_php($hash, $public !== '' ? $public : null);
                 if (file_put_contents($target, $body) === false) {
                     $error = 'Could not write data/secrets.php. Check permissions on data/.';
                 } else {
@@ -136,6 +133,7 @@ PHP;
                     header('Location: login.php?installed=1', true, 302);
                     exit;
                 }
+            }
             }
         }
     }
@@ -203,9 +201,12 @@ $csrf = auth_csrf_token();
         <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" <?= $canInstall ? '' : 'disabled' ?>>
         <label for="password2">Repeat password</label>
         <input type="password" id="password2" name="password2" required minlength="8" autocomplete="new-password" <?= $canInstall ? '' : 'disabled' ?>>
+        <label for="public_base_url">Public site URL for email images (optional, <code>https://…</code>, no trailing slash)</label>
+        <input type="url" id="public_base_url" name="public_base_url" placeholder="https://countdown.example.com" autocomplete="off" <?= $canInstall ? '' : 'disabled' ?>>
+        <p class="foot" style="margin-top:0.5rem">If you skip this, the app uses the same host you use to open this installer (fine for production; use a CDN URL here if images are served from another domain).</p>
         <button type="submit" <?= $canInstall ? '' : 'disabled' ?>>Install</button>
       </form>
-      <p class="foot">Command line alternative: <code>php scripts/setup_secrets.php &quot;…&quot;</code></p>
+      <p class="foot" style="margin-top:1rem">Command line: <code>php scripts/setup_secrets.php &quot;…&quot;</code> (add <code>public_base_url</code> to <code>data/secrets.php</code> by hand if needed).</p>
     </div>
   </div>
 </body>

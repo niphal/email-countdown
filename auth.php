@@ -13,16 +13,11 @@ function auth_secrets_path(): string
 }
 
 /**
- * @return array{password_hash?: string}|null
+ * @return array{password_hash?: string, public_base_url?: string}|null
  */
 function auth_secrets(): ?array
 {
-    $path = auth_secrets_path();
-    if (!is_readable($path)) {
-        return null;
-    }
-    $data = require $path;
-    return is_array($data) ? $data : null;
+    return app_secrets_array();
 }
 
 function auth_password_hash_configured(): bool

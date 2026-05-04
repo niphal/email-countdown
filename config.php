@@ -32,6 +32,74 @@ function app_timer_url_prefix(): string
     return $timerPath . '?id=';
 }
 
+/**
+ * @return array{password_hash?: string, public_base_url?: string}|null
+ */
+function app_secrets_array(): ?array
+{
+    $path = APP_ROOT . '/data/secrets.php';
+    if (!is_readable($path)) {
+        return null;
+    }
+    $data = require $path;
+
+    return is_array($data) ? $data : null;
+}
+
+/** Origin for absolute email image URLs (no trailing slash). */
+function app_embed_origin(): string
+{
+    $cfg = app_secrets_array();
+    $custom = isset($cfg['public_base_url']) ? trim((string) $cfg['public_base_url']) : '';
+    if ($custom !== '') {
+        return rtrim($custom, '/');
+    }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+        || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+    if ($host === '') {
+        return '';
+    }
+
+    return ($https ? 'https' : 'http') . '://' . $host;
+}
+
+/** Full URL prefix for pasted email HTML; falls back to root-relative if no host. */
+function app_timer_embed_src_prefix(): string
+{
+    $rel = app_timer_url_prefix();
+    $origin = app_embed_origin();
+    if ($origin === '') {
+        return $rel;
+    }
+
+    return $origin . $rel;
+}
+
+/**
+ * PHP source for data/secrets.php (password hash required; public_base_url optional).
+ */
+function app_format_secrets_php(string $passwordHash, ?string $publicBaseUrl = null): string
+{
+    $pub = $publicBaseUrl !== null ? trim($publicBaseUrl) : '';
+    $lines = [
+        '<?php',
+        '',
+        'declare(strict_types=1);',
+        '',
+        'return [',
+        '    \'password_hash\' => ' . var_export($passwordHash, true) . ',',
+    ];
+    if ($pub !== '') {
+        $lines[] = '    \'public_base_url\' => ' . var_export($pub, true) . ',';
+    }
+    $lines[] = '];';
+    $lines[] = '';
+
+    return implode("\n", $lines);
+}
+
 function db(): PDO
 {
     static $pdo = null;

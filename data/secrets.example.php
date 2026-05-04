@@ -11,4 +11,6 @@ declare(strict_types=1);
  */
 return [
     'password_hash' => '',
+    /** Optional: https://your-cdn.example.com (no trailing slash). Used for full email image URLs when set. */
+    'public_base_url' => '',
 ];

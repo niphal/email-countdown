@@ -7,7 +7,9 @@ auth_require_login_redirect();
 // Touch DB so fresh installs have data dir
 db();
 
-$timerUrlPrefix = app_timer_url_prefix();
+$timerPreviewPrefix = app_timer_url_prefix();
+$timerEmbedPrefix = app_timer_embed_src_prefix();
+$embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -138,6 +140,9 @@ $timerUrlPrefix = app_timer_url_prefix();
       <a class="logout" href="logout.php">Log out</a>
     </div>
     <p class="lede">Create timers that render as animated GIFs (about 20 one-second frames from load time)—safe for Braze and other ESPs (no JavaScript in email). Add <code>?format=png</code> to the image URL for a single static PNG instead. Paste the HTML into the Braze email editor.</p>
+    <?php if ($embedNeedsPublicBase): ?>
+    <p class="note" style="margin:-1rem 0 1.5rem;padding:0.75rem 1rem;background:rgba(248,113,113,0.12);border:1px solid #5c2a35;border-radius:8px;">Copied embed URLs are still <strong>root-relative</strong> (no host was available). Add <code>'public_base_url' =&gt; 'https://your-public-site'</code> to <code>data/secrets.php</code> (no trailing slash), or open the dashboard on your public <strong>https</strong> URL, then copy again.</p>
+    <?php endif; ?>
 
     <div class="panel">
       <h2>New timer</h2>
@@ -181,7 +186,7 @@ $timerUrlPrefix = app_timer_url_prefix();
     <div class="panel">
       <h2>Braze notes</h2>
       <p class="note" style="margin:0;">
-        Use <strong>Custom HTML</strong> or the HTML block and paste the <code>&lt;img&gt;</code> snippet. Image <code>src</code> is <strong>root-relative</strong> (starts with <code>/</code>); if your ESP requires a full URL, prepend your public site origin (same path). The default URL serves an <strong>animated GIF</strong> that steps the countdown once per second for up to 20 seconds after each load (then may stop or behave per the client). Each open can refresh the asset; caching is normal. Replace the <code>href=&quot;#&quot;</code> wrapper link with your real CTA URL.
+        Use <strong>Custom HTML</strong> or the HTML block and paste the <code>&lt;img&gt;</code> snippet. Copied HTML uses a <strong>full URL</strong> for <code>img src</code> (this site’s host, or <code>public_base_url</code> in <code>data/secrets.php</code>). Use <strong>HTTPS</strong> in production. The default URL serves an <strong>animated GIF</strong> that steps the countdown about once per second for up to 20 seconds after each load (client behavior varies). Each open can refresh the asset; caching is normal. Replace the <code>href=&quot;#&quot;</code> wrapper link with your real CTA URL.
         For a <strong>per-recipient</strong> end time, append <code>&amp;end=</code> with a Unix timestamp from Liquid, for example
         <code class="embed" style="margin-top:0.5rem;display:block;">&amp;end={{event_properties.end_ts}}</code>
         (your property must be an integer Unix time in seconds). The query override takes precedence over the saved end time.
@@ -192,8 +197,10 @@ $timerUrlPrefix = app_timer_url_prefix();
 
   <script>
     const API = 'api/timers.php';
-    /** Root-relative timer URL (scheme/host from the inbox when the email is opened) */
-    const TIMER_URL_PREFIX = <?= json_encode($timerUrlPrefix, JSON_THROW_ON_ERROR) ?>;
+    /** Root-relative: dashboard preview only */
+    const TIMER_PREVIEW_PREFIX = <?= json_encode($timerPreviewPrefix, JSON_THROW_ON_ERROR) ?>;
+    /** Absolute https? URL for pasted email HTML (from request host or public_base_url in secrets) */
+    const TIMER_EMBED_PREFIX = <?= json_encode($timerEmbedPrefix, JSON_THROW_ON_ERROR) ?>;
 
     function toast(msg) {
       const t = document.getElementById('toast');
@@ -210,7 +217,7 @@ $timerUrlPrefix = app_timer_url_prefix();
 
     function embedHtml(id, width) {
       const w = width || 560;
-      const src = TIMER_URL_PREFIX + encodeURIComponent(id);
+      const src = TIMER_EMBED_PREFIX + encodeURIComponent(id);
       return '<a href="#" style="text-decoration:none;">\n' +
         '  <img src="' + src + '" width="' + w + '" alt="Countdown" style="display:block;border:0;max-width:100%;height:auto;" />\n' +
         '</a>';
@@ -249,7 +256,7 @@ $timerUrlPrefix = app_timer_url_prefix();
           const img = document.createElement('img');
           img.alt = 'Preview';
           img.loading = 'lazy';
-          img.src = TIMER_URL_PREFIX + encodeURIComponent(t.id) + '&_=' + Date.now();
+          img.src = TIMER_PREVIEW_PREFIX + encodeURIComponent(t.id) + '&_=' + Date.now();
           card.querySelector('.preview').appendChild(img);
           list.appendChild(card);
         }

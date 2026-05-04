@@ -47,6 +47,7 @@ Finish the wizard, then use **Sign in** on the dashboard.
 ## Authentication
 
 - Until **`data/secrets.php`** contains a valid password hash, **`index.php`** redirects to **`install.php`** (and the API returns **503** with an `install` hint).
+- Optional **`public_base_url`** in **`data/secrets.php`** (HTTPS, no trailing slash): used as the origin for **absolute** `img src` URLs in copied email HTML. If unset, the app uses the current request’s `Host` (set it when the admin UI is only on an internal URL).
 - **`index.php`** (dashboard) and **`api/timers.php`** require a signed-in session (password from `data/secrets.php`).
 - **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
 - Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
@@ -59,12 +60,12 @@ Finish the wizard, then use **Sign in** on the dashboard.
 2. Create a timer (end time, colors, optional label).
 3. Use **Copy HTML** and paste into your ESP’s **custom HTML** (Braze HTML editor, etc.).
 4. Replace the `href="#"` link in the snippet with your real landing URL.
-5. Copied HTML uses a **root-relative** image `src` (e.g. `/email_timer/timer.php?id=…`). In production, mail should be served over **HTTPS**; prepend your public origin on that path if your ESP does not resolve root-relative URLs correctly.
+5. Copied HTML uses a **full absolute** `img src` (from your public site or `public_base_url` in `data/secrets.php`). Use **HTTPS** in production.
 
 ### Timer image URL
 
 - **Default (animated GIF):**  
-  `/PATH/timer.php?id=TIMER_ID` (root-relative; prepend `https://your-public-site` when pasting into some ESPs)  
+  `https://YOUR_PUBLIC_ORIGIN/PATH/timer.php?id=TIMER_ID` (origin from the dashboard request or `public_base_url`)  
   Steps the countdown about once per second for up to 20 seconds after each load (client behavior may vary).
 
 - **Static PNG:**  
