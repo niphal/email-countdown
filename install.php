@@ -21,12 +21,12 @@ if (auth_is_installed()) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Already installed</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
     :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; }
-    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:"DM Sans",system-ui,sans-serif; background:var(--bg); color:var(--text); padding:1rem; }
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1rem; }
     .card { max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
-    h1 { font-size:1.2rem; margin:0 0 0.75rem; }
+    h1 { font-family:var(--font-display); font-size:1.2rem; margin:0 0 0.75rem; font-weight:700; }
     p { color:var(--muted); line-height:1.5; margin:0 0 1rem; }
     a { color:#a5b4fc; }
   </style>
@@ -147,16 +147,16 @@ $csrf = auth_csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Install — Email countdown</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
     :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; --bad:#f87171; --ok:#7ae582; }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; font-family:"DM Sans",system-ui,sans-serif; background:var(--bg); color:var(--text); padding:1.25rem; line-height:1.45; }
+    body { margin:0; min-height:100vh; font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1.25rem; line-height:1.45; }
     .wrap { max-width:520px; margin:0 auto; }
-    h1 { font-size:1.35rem; margin:0 0 0.35rem; font-weight:600; }
+    h1 { font-family:var(--font-display); font-size:1.35rem; margin:0 0 0.35rem; font-weight:700; }
     .sub { color:var(--muted); font-size:0.95rem; margin-bottom:1.5rem; }
     .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1rem; }
-    h2 { font-size:0.95rem; margin:0 0 0.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+    h2 { font-family:var(--font-ui); font-size:0.95rem; margin:0 0 0.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
     ul.reqs { list-style:none; margin:0; padding:0; font-size:0.9rem; }
     ul.reqs li { padding:0.55rem 0; border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto; gap:0.35rem 1rem; align-items:start; }
     ul.reqs li:last-child { border-bottom:0; }
@@ -166,7 +166,7 @@ $csrf = auth_csrf_token();
     label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.35rem; margin-top:0.75rem; }
     label:first-of-type { margin-top:0; }
     input[type="password"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border); background:#0f1117; color:var(--text); font-size:1rem; }
-    button { margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
+    button { font-family:var(--font-ui); margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
       background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; }
     button:disabled { opacity:0.45; cursor:not-allowed; }
     .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }

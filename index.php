@@ -17,9 +17,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Email countdown timers</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
     :root {
       --bg: #0f1117;
@@ -35,13 +33,14 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "DM Sans", system-ui, sans-serif;
+      font-family: var(--font-body);
       background: radial-gradient(1200px 600px at 10% -10%, #1a1530 0%, transparent 50%), var(--bg);
       color: var(--text);
       line-height: 1.5;
     }
     .wrap { max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
     h1 {
+      font-family: var(--font-display);
       font-size: 1.75rem;
       font-weight: 700;
       letter-spacing: -0.02em;
@@ -55,7 +54,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       padding: 1.25rem 1.5rem;
       margin-bottom: 1.5rem;
     }
-    .panel h2 { font-size: 1rem; margin: 0 0 1rem; font-weight: 600; }
+    .panel h2 { font-family: var(--font-ui); font-size: 1rem; margin: 0 0 1rem; font-weight: 600; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
     input[type="text"], input[type="datetime-local"], input[type="number"] {
       width: 100%;
@@ -81,7 +80,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       .grid-3 { grid-template-columns: repeat(3, 1fr); }
     }
     button {
-      font-family: inherit;
+      font-family: var(--font-ui);
       font-weight: 600;
       font-size: 0.9rem;
       padding: 0.65rem 1.1rem;
@@ -106,10 +105,10 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       margin-bottom: 1rem;
       background: rgba(0,0,0,0.2);
     }
-    .timer-card h3 { margin: 0 0 0.25rem; font-size: 1rem; }
-    .timer-card .meta { font-size: 0.8rem; color: var(--muted); font-family: "JetBrains Mono", monospace; }
+    .timer-card h3 { font-family: var(--font-accent); margin: 0 0 0.25rem; font-size: 1rem; font-weight: 600; }
+    .timer-card .meta { font-size: 0.8rem; color: var(--muted); font-family: var(--font-mono); }
     .embed {
-      font-family: "JetBrains Mono", monospace;
+      font-family: var(--font-mono);
       font-size: 0.72rem;
       line-height: 1.4;
       background: var(--bg);
@@ -124,7 +123,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     .preview { margin-top: 0.75rem; }
     .preview img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
     .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
-    .toast { position: fixed; bottom: 1.25rem; right: 1.25rem; background: var(--surface); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; display: none; }
+    .toast { font-family: var(--font-ui); position: fixed; bottom: 1.25rem; right: 1.25rem; background: var(--surface); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; display: none; }
     .toast.show { display: block; }
     .empty { color: var(--muted); font-size: 0.95rem; }
     .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; }

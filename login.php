@@ -42,18 +42,18 @@ $next = auth_redirect_target($_GET['next'] ?? null);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in — Email countdown</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
     :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; --bad:#f87171; }
     * { box-sizing: border-box; }
     body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-      font-family:"DM Sans",system-ui,sans-serif; background:var(--bg); color:var(--text); padding:1rem; }
+      font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1rem; }
     .card { width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
-    h1 { font-size:1.2rem; margin:0 0 1rem; font-weight:600; }
+    h1 { font-family:var(--font-display); font-size:1.2rem; margin:0 0 1rem; font-weight:700; }
     label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.35rem; }
     input[type="password"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border);
       background:#0f1117; color:var(--text); font-size:1rem; margin-bottom:1rem; }
-    button { width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
+    button { font-family:var(--font-ui); width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
       background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; }
     .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }
     .hint { font-size:0.82rem; color:var(--muted); margin-top:1rem; line-height:1.45; }
