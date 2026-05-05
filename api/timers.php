@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/lib/timer_fonts.php';
+require_once dirname(__DIR__) . '/lib/timer_layouts.php';
 require_once dirname(__DIR__) . '/auth.php';
 
 auth_start_session();
@@ -13,10 +14,11 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
     if ($method === 'GET') {
-        $stmt = db()->query('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, created_at FROM timers ORDER BY created_at DESC');
+        $stmt = db()->query('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, created_at FROM timers ORDER BY created_at DESC');
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['font_key'] = timer_normalize_font_key((string) ($row['font_key'] ?? 'noto_sans_bold'));
+            $row['layout_key'] = timer_normalize_layout_key((string) ($row['layout_key'] ?? 'segmented_pills'));
             $row['dynamic_sig'] = app_timer_signature_for_id((string) ($row['id'] ?? ''));
         }
         unset($row);
@@ -40,9 +42,10 @@ try {
         $h = clamp_int((int) ($body['height'] ?? 140), 80, 400);
         $fontKey = timer_normalize_font_key((string) ($body['font_key'] ?? 'noto_sans_bold'));
         $fontSizeMain = clamp_int((int) ($body['font_size_main'] ?? 32), 14, 72);
+        $layoutKey = timer_normalize_layout_key((string) ($body['layout_key'] ?? 'segmented_pills'));
         $now = time();
-        $stmt = db()->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
-        $stmt->execute([$id, $name, $endsAt, $bg, $fg, $ac, $label, $w, $h, $fontKey, $fontSizeMain, $now]);
+        $stmt = db()->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+        $stmt->execute([$id, $name, $endsAt, $bg, $fg, $ac, $label, $w, $h, $fontKey, $fontSizeMain, $layoutKey, $now]);
         json_response(['id' => $id]);
     }
 
