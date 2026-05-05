@@ -146,7 +146,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $error = 'Could not hash password.';
             } else {
                 $target = auth_secrets_path();
-                $body = app_format_secrets_php($hash, $public !== '' ? $public : null);
+                $signingKey = bin2hex(random_bytes(32));
+                $body = app_format_secrets_php($hash, $public !== '' ? $public : null, $signingKey);
                 if (file_put_contents($target, $body) === false) {
                     $error = 'Could not write data/secrets.php. Check permissions on data/.';
                 } else {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * First-time auth setup: creates data/secrets.php from the example and writes password_hash.
+ * It also preserves or creates timer_signing_key for signed dynamic timer URLs.
  * For a browser wizard, open install.php instead.
  *
  * Usage (from project root):
@@ -80,14 +81,22 @@ if ($hash === false) {
 }
 
 $publicKeep = '';
+$signingKeep = '';
 if (is_file($target)) {
     $old = app_secrets_array();
     if (is_array($old) && !empty($old['public_base_url'])) {
         $publicKeep = trim((string) $old['public_base_url']);
     }
+    if (is_array($old) && !empty($old['timer_signing_key'])) {
+        $signingKeep = strtolower(trim((string) $old['timer_signing_key']));
+    }
 }
 
-$body = app_format_secrets_php($hash, $publicKeep !== '' ? $publicKeep : null);
+if (!preg_match('/^[a-f0-9]{64}$/', $signingKeep)) {
+    $signingKeep = bin2hex(random_bytes(32));
+}
+
+$body = app_format_secrets_php($hash, $publicKeep !== '' ? $publicKeep : null, $signingKeep);
 
 if (file_put_contents($target, $body) === false) {
     fwrite(STDERR, "Could not write {$target}\n");

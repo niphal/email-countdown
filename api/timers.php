@@ -17,6 +17,7 @@ try {
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['font_key'] = timer_normalize_font_key((string) ($row['font_key'] ?? 'noto_sans_bold'));
+            $row['dynamic_sig'] = app_timer_signature_for_id((string) ($row['id'] ?? ''));
         }
         unset($row);
         json_response(['timers' => $rows]);

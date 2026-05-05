@@ -33,7 +33,7 @@ function app_timer_url_prefix(): string
 }
 
 /**
- * @return array{password_hash?: string, public_base_url?: string}|null
+ * @return array{password_hash?: string, public_base_url?: string, timer_signing_key?: string}|null
  */
 function app_secrets_array(): ?array
 {
@@ -78,11 +78,16 @@ function app_timer_embed_src_prefix(): string
 }
 
 /**
- * PHP source for data/secrets.php (password hash required; public_base_url optional).
+ * PHP source for data/secrets.php.
+ *
+ * - password hash required
+ * - public_base_url optional
+ * - timer_signing_key optional (hex)
  */
-function app_format_secrets_php(string $passwordHash, ?string $publicBaseUrl = null): string
+function app_format_secrets_php(string $passwordHash, ?string $publicBaseUrl = null, ?string $timerSigningKey = null): string
 {
     $pub = $publicBaseUrl !== null ? trim($publicBaseUrl) : '';
+    $sign = $timerSigningKey !== null ? trim($timerSigningKey) : '';
     $lines = [
         '<?php',
         '',
@@ -93,6 +98,9 @@ function app_format_secrets_php(string $passwordHash, ?string $publicBaseUrl = n
     ];
     if ($pub !== '') {
         $lines[] = '    \'public_base_url\' => ' . var_export($pub, true) . ',';
+    }
+    if ($sign !== '') {
+        $lines[] = '    \'timer_signing_key\' => ' . var_export($sign, true) . ',';
     }
     $lines[] = '];';
     $lines[] = '';
@@ -158,4 +166,42 @@ function json_response(mixed $data, int $code = 200): void
     header('Cache-Control: no-store');
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     exit;
+}
+
+function app_timer_signing_key(): string
+{
+    $cfg = app_secrets_array();
+    if (!is_array($cfg)) {
+        return '';
+    }
+    $raw = trim((string) ($cfg['timer_signing_key'] ?? ''));
+    if ($raw === '' || !preg_match('/^[a-f0-9]{32,128}$/', strtolower($raw))) {
+        return '';
+    }
+
+    return strtolower($raw);
+}
+
+function app_timer_signature_for_id(string $id): string
+{
+    $key = app_timer_signing_key();
+    if ($key === '' || !preg_match('/^[a-f0-9]{32}$/', $id)) {
+        return '';
+    }
+
+    return hash_hmac('sha256', $id, $key);
+}
+
+function app_timer_has_valid_signature(string $id, ?string $sig): bool
+{
+    $expected = app_timer_signature_for_id($id);
+    if ($expected === '') {
+        return false;
+    }
+    $given = strtolower(trim((string) ($sig ?? '')));
+    if (!preg_match('/^[a-f0-9]{64}$/', $given)) {
+        return false;
+    }
+
+    return hash_equals($expected, $given);
 }

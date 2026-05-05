@@ -203,6 +203,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         For a <strong>per-recipient</strong> end time, append <code>&amp;end=</code> with a Unix timestamp from Liquid, for example
         <code class="embed" style="margin-top:0.5rem;display:block;">&amp;end={{event_properties.end_ts}}</code>
         (your property must be an integer Unix time in seconds). The query override takes precedence over the saved end time.
+        Use <strong>Copy Dynamic HTML</strong> to include the per-timer <code>sig</code> value for signed dynamic URLs.
       </p>
     </div>
   </div>
@@ -231,6 +232,17 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     function embedHtml(id, width) {
       const w = width || 560;
       const src = TIMER_EMBED_PREFIX + encodeURIComponent(id);
+      return '<a href="#" style="text-decoration:none;">\n' +
+        '  <img src="' + src + '" width="' + w + '" alt="Countdown" style="display:block;border:0;max-width:100%;height:auto;" />\n' +
+        '</a>';
+    }
+
+    function embedHtmlDynamic(id, width, sig) {
+      const w = width || 560;
+      let src = TIMER_EMBED_PREFIX + encodeURIComponent(id) + '&end={{event_properties.end_ts}}';
+      if (sig) {
+        src += '&sig=' + encodeURIComponent(sig);
+      }
       return '<a href="#" style="text-decoration:none;">\n' +
         '  <img src="' + src + '" width="' + w + '" alt="Countdown" style="display:block;border:0;max-width:100%;height:auto;" />\n' +
         '</a>';
@@ -265,6 +277,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
             '<div class="embed" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width)) + '</div>' +
             '<div class="row-actions">' +
             '<button type="button" class="secondary btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '">Copy HTML</button>' +
+            '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '">Copy Dynamic HTML</button>' +
             '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button></div>';
           const img = document.createElement('img');
           img.alt = 'Preview';
@@ -278,6 +291,14 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
             const id = btn.getAttribute('data-id');
             const width = parseInt(btn.getAttribute('data-width') || '560', 10);
             navigator.clipboard.writeText(embedHtml(id, width)).then(() => toast('Copied HTML'));
+          });
+        });
+        list.querySelectorAll('.btn-copy-dynamic').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const width = parseInt(btn.getAttribute('data-width') || '560', 10);
+            const sig = btn.getAttribute('data-sig') || '';
+            navigator.clipboard.writeText(embedHtmlDynamic(id, width, sig)).then(() => toast('Copied dynamic HTML'));
           });
         });
         list.querySelectorAll('.btn-del').forEach(btn => {

@@ -46,6 +46,7 @@ Point the document root (or a URL path) at this project, then open `install.php`
 
 - Until **`data/secrets.php`** contains a valid password hash, **`index.php`** redirects to **`install.php`** (and the API returns **503** with an `install` hint).
 - Optional **`public_base_url`** in **`data/secrets.php`** (HTTPS, no trailing slash): used as the origin for **absolute** `img src` URLs in copied email HTML. If unset, the app uses the current request’s `Host` (set it when the admin UI is only on an internal URL).
+- Installer/CLI setup also creates **`timer_signing_key`** in `data/secrets.php` for signed dynamic timer URLs.
 - **`index.php`** (dashboard) and **`api/timers.php`** require a signed-in session (password from `data/secrets.php`).
 - **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
 - Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
@@ -71,6 +72,11 @@ Point the document root (or a URL path) at this project, then open `install.php`
 
 - **Per-recipient end time (Braze Liquid, etc.):**  
   Append `&end=UNIX_TIMESTAMP` (seconds). That value overrides the stored end time when the image is generated.
+
+- **Signed dynamic override (recommended):**  
+  Append `&end=...&sig=...` where `sig` is the timer-specific HMAC from the dashboard's **Copy Dynamic HTML** button.
+  Example:
+  `https://YOUR_PUBLIC_ORIGIN/PATH/timer.php?id=TIMER_ID&end={{event_properties.end_ts}}&sig=...`
 
 ## API (JSON)
 

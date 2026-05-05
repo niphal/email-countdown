@@ -28,6 +28,15 @@ $overrideEnd = isset($_GET['end']) ? (int) $_GET['end'] : null;
 if ($overrideEnd !== null && $overrideEnd <= 0) {
     $overrideEnd = null;
 }
+if ($overrideEnd !== null) {
+    $key = app_timer_signing_key();
+    if ($key !== '' && !app_timer_has_valid_signature($id, $_GET['sig'] ?? null)) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Dynamic end override requires a valid sig parameter.';
+        exit;
+    }
+}
 
 $stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main FROM timers WHERE id = ?');
 $stmt->execute([$id]);
