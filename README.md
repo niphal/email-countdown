@@ -52,6 +52,8 @@ Point the document root (or a URL path) at this project, then open `install.php`
 - **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
 - Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
 - Login form includes a **CSRF** token. After **5 failed** password attempts, login is blocked for **60 seconds**.
+- **Forgot password token flow**: request at `forgot_password.php`, consume at `reset_password.php` (1 hour expiry, one-time use).
+- By default, reset links are appended to `data/reset-links.log` on the server (and `mail()` is attempted if configured).
 - Use **Log out** (or `logout.php`) on shared machines.
 
 ## Usage
@@ -99,6 +101,8 @@ Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }
 install.php           # Web installer (run once)
 auth.php              # Session login helpers
 login.php / logout.php
+forgot_password.php   # Request password reset token
+reset_password.php    # Consume token and set new password
 api/timers.php        # JSON CRUD (auth + workspace scoped)
 api/audit.php         # Workspace audit entries (auth)
 api/billing.php       # Workspace billing + entitlements (auth)

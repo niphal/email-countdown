@@ -367,3 +367,106 @@ function auth_require_api_login(): void
     }
     json_response(['error' => 'Unauthorized'], 401);
 }
+
+function auth_password_reset_ttl_seconds(): int
+{
+    return 3600;
+}
+
+function auth_password_reset_base_url(): string
+{
+    $origin = app_embed_origin();
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/login.php');
+    $dir = rtrim(str_replace('\\', '/', dirname($script)), '/');
+    $path = ($dir === '' || $dir === '.' || $dir === '/') ? '/reset_password.php' : ($dir . '/reset_password.php');
+    if ($path[0] !== '/') {
+        $path = '/' . $path;
+    }
+    if ($origin !== '') {
+        return $origin . $path;
+    }
+
+    return $path;
+}
+
+function auth_request_password_reset(string $email): void
+{
+    $email = trim($email);
+    if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        return;
+    }
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT id, email FROM users WHERE is_active = 1 AND LOWER(email) = LOWER(?) LIMIT 1');
+    $stmt->execute([$email]);
+    $u = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($u)) {
+        return;
+    }
+
+    $userId = (int) $u['id'];
+    $token = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $token);
+    $now = time();
+    $exp = $now + auth_password_reset_ttl_seconds();
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    if (strlen($ip) > 64) {
+        $ip = substr($ip, 0, 64);
+    }
+
+    $pdo->prepare('DELETE FROM password_resets WHERE user_id = ? AND used_at IS NULL')->execute([$userId]);
+    $ins = $pdo->prepare('INSERT INTO password_resets (user_id, token_hash, expires_at, used_at, requested_ip, created_at) VALUES (?, ?, ?, NULL, ?, ?)');
+    $ins->execute([$userId, $tokenHash, $exp, $ip, $now]);
+
+    $link = auth_password_reset_base_url() . '?token=' . rawurlencode($token);
+    $subject = 'Password reset link';
+    $body = "Use this link to reset your password (valid for 60 minutes):\n\n" . $link . "\n\nIf you did not request this, you can ignore this email.";
+    @mail((string) $u['email'], $subject, $body, 'From: no-reply@localhost');
+
+    $logPath = APP_ROOT . '/data/reset-links.log';
+    $line = '[' . gmdate('c') . '] ' . (string) $u['email'] . ' ' . $link . PHP_EOL;
+    @file_put_contents($logPath, $line, FILE_APPEND | LOCK_EX);
+}
+
+function auth_consume_password_reset_token(string $token, string $newPassword): bool
+{
+    $token = trim($token);
+    if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+        return false;
+    }
+    if (strlen($newPassword) < 8) {
+        return false;
+    }
+    $pdo = db();
+    $now = time();
+    $hash = hash('sha256', $token);
+    $stmt = $pdo->prepare('SELECT id, user_id, expires_at, used_at FROM password_resets WHERE token_hash = ? LIMIT 1');
+    $stmt->execute([$hash]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+        return false;
+    }
+    if (!empty($row['used_at']) || (int) $row['expires_at'] < $now) {
+        return false;
+    }
+
+    $pwHash = password_hash($newPassword, PASSWORD_DEFAULT);
+    if ($pwHash === false) {
+        return false;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE users SET password_hash = ?, is_active = 1 WHERE id = ?')->execute([$pwHash, (int) $row['user_id']]);
+        $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE id = ?')->execute([$now, (int) $row['id']]);
+        $pdo->prepare('DELETE FROM password_resets WHERE user_id = ? AND id <> ?')->execute([(int) $row['user_id'], (int) $row['id']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        return false;
+    }
+
+    return true;
+}
