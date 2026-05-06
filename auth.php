@@ -12,6 +12,10 @@ const AUTH_SESSION_USER_ID = 'email_timer_user_id';
 const AUTH_SESSION_USER_ROLE = 'email_timer_user_role';
 const AUTH_SESSION_WORKSPACE_ID = 'email_timer_workspace_id';
 const AUTH_SESSION_USER_NAME = 'email_timer_user_name';
+const AUTH_ROLE_OWNER = 'owner';
+const AUTH_ROLE_ADMIN = 'admin';
+const AUTH_ROLE_EDITOR = 'editor';
+const AUTH_ROLE_VIEWER = 'viewer';
 
 function auth_secrets_path(): string
 {
@@ -104,19 +108,50 @@ function auth_user_id(): int
     return $u !== null ? (int) $u['id'] : 0;
 }
 
-function auth_can_write_dashboard(): bool
+function auth_role_rank(string $role): int
+{
+    return match ($role) {
+        AUTH_ROLE_OWNER => 4,
+        AUTH_ROLE_ADMIN => 3,
+        AUTH_ROLE_EDITOR => 2,
+        AUTH_ROLE_VIEWER => 1,
+        default => 0,
+    };
+}
+
+function auth_has_min_role(string $minRole): bool
 {
     $u = auth_current_user();
     if ($u === null) {
         return false;
     }
 
-    return in_array($u['role'], ['owner', 'admin', 'editor'], true);
+    return auth_role_rank((string) $u['role']) >= auth_role_rank($minRole);
+}
+
+function auth_is_valid_role(string $role): bool
+{
+    return in_array($role, [AUTH_ROLE_OWNER, AUTH_ROLE_ADMIN, AUTH_ROLE_EDITOR, AUTH_ROLE_VIEWER], true);
+}
+
+function auth_can_write_dashboard(): bool
+{
+    return auth_has_min_role(AUTH_ROLE_EDITOR);
 }
 
 function auth_can_view_audit(): bool
 {
-    return auth_can_write_dashboard();
+    return auth_has_min_role(AUTH_ROLE_EDITOR);
+}
+
+function auth_can_manage_members(): bool
+{
+    return auth_has_min_role(AUTH_ROLE_ADMIN);
+}
+
+function auth_can_manage_billing(): bool
+{
+    return auth_has_min_role(AUTH_ROLE_ADMIN);
 }
 
 function auth_require_api_write(): void
@@ -131,6 +166,22 @@ function auth_require_api_audit_read(): void
 {
     auth_require_api_login();
     if (!auth_can_view_audit()) {
+        json_response(['error' => 'Forbidden'], 403);
+    }
+}
+
+function auth_require_api_members_manage(): void
+{
+    auth_require_api_login();
+    if (!auth_can_manage_members()) {
+        json_response(['error' => 'Forbidden'], 403);
+    }
+}
+
+function auth_require_api_billing_manage(): void
+{
+    auth_require_api_login();
+    if (!auth_can_manage_billing()) {
         json_response(['error' => 'Forbidden'], 403);
     }
 }
@@ -295,6 +346,15 @@ function auth_require_login_redirect(): void
     $next = urlencode($_SERVER['REQUEST_URI'] ?? '/index.php');
     header('Location: login.php?next=' . $next, true, 302);
     exit;
+}
+
+function auth_require_admin_page_redirect(): void
+{
+    auth_require_login_redirect();
+    if (!auth_has_min_role(AUTH_ROLE_ADMIN)) {
+        header('Location: index.php', true, 302);
+        exit;
+    }
 }
 
 function auth_require_api_login(): void

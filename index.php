@@ -148,6 +148,9 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     .billing-card { border: 1px dashed var(--border); border-radius: 10px; padding: 0.8rem; margin: 0 0 1rem; }
     .billing-kpis { display:flex; gap:1rem; flex-wrap:wrap; font-size:0.82rem; color:var(--muted); }
     .billing-kpis span strong { color: var(--text); }
+    .menu { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .55rem; }
+    .menu a { color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: 8px; padding: .35rem .6rem; font-size: .8rem; }
+    .menu a.active { border-color: var(--accent); }
     a.logout { color: var(--muted); font-size: 0.9rem; text-decoration: none; padding: 0.35rem 0; }
     a.logout:hover { color: var(--text); text-decoration: underline; }
   </style>
@@ -158,6 +161,10 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       <div>
         <h1>Email countdown timers</h1>
         <?php if ($workspaceBanner !== ''): ?><div class="ws-pill">Workspace: <?= htmlspecialchars($workspaceBanner, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+        <div class="menu">
+          <a href="index.php" class="active">Dashboard</a>
+          <?php if (auth_has_min_role(AUTH_ROLE_ADMIN)): ?><a href="admin.php">Admin</a><?php endif; ?>
+        </div>
       </div>
       <a class="logout" href="logout.php">Log out</a>
     </div>
