@@ -50,6 +50,16 @@ function platform_schema_migrate(PDO $pdo): void
         created_at INTEGER NOT NULL
     )');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS workspace_billing (
+        workspace_id INTEGER PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+        plan_key TEXT NOT NULL DEFAULT "free",
+        status TEXT NOT NULL DEFAULT "active",
+        stripe_customer_id TEXT NOT NULL DEFAULT "",
+        current_period_end INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )');
+
     $tcols = [];
     foreach ($pdo->query('PRAGMA table_info(timers)') as $row) {
         $tcols[(string) $row['name']] = true;
@@ -67,6 +77,13 @@ function platform_schema_migrate(PDO $pdo): void
         $now = time();
         $stmt = $pdo->prepare('INSERT INTO workspaces (name, slug, created_at) VALUES (?, ?, ?)');
         $stmt->execute(['Default workspace', 'default', $now]);
+    }
+
+    $seedBilling = $pdo->query('SELECT id FROM workspaces')->fetchAll(PDO::FETCH_COLUMN);
+    $now = time();
+    $insBilling = $pdo->prepare('INSERT OR IGNORE INTO workspace_billing (workspace_id, plan_key, status, stripe_customer_id, current_period_end, created_at, updated_at) VALUES (?, "free", "active", "", 0, ?, ?)');
+    foreach ($seedBilling as $wsId) {
+        $insBilling->execute([(int) $wsId, $now, $now]);
     }
 }
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/lib/timer_layouts.php';
+require_once __DIR__ . '/lib/monetization.php';
 require_once __DIR__ . '/auth.php';
 auth_start_session();
 auth_require_login_redirect();
@@ -144,6 +145,9 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     .ws-pill { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); margin-top: 0.35rem; }
     .audit-lines { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); line-height: 1.55; max-height: 220px; overflow-y: auto; }
     .audit-lines div { padding: 0.2rem 0; border-bottom: 1px solid var(--border); }
+    .billing-card { border: 1px dashed var(--border); border-radius: 10px; padding: 0.8rem; margin: 0 0 1rem; }
+    .billing-kpis { display:flex; gap:1rem; flex-wrap:wrap; font-size:0.82rem; color:var(--muted); }
+    .billing-kpis span strong { color: var(--text); }
     a.logout { color: var(--muted); font-size: 0.9rem; text-decoration: none; padding: 0.35rem 0; }
     a.logout:hover { color: var(--text); text-decoration: underline; }
   </style>
@@ -164,6 +168,10 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
 
     <div class="panel">
       <h2>New timer</h2>
+      <div id="billing-box" class="billing-card">
+        <div id="billing-title" style="font-weight:600;">Plan: Loading…</div>
+        <div id="billing-kpis" class="billing-kpis"></div>
+      </div>
       <form id="create-form" class="grid grid-2">
         <div>
           <label for="name">Internal name</label>
@@ -215,6 +223,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       <div class="row-actions">
         <button type="submit" form="create-form" id="btn-create">Create timer</button>
         <button type="button" id="btn-cancel-edit" class="secondary" style="display:none;">Cancel edit</button>
+        <button type="button" id="btn-upgrade" class="secondary">Upgrade plans</button>
       </div>
     </div>
 
@@ -244,6 +253,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
 
   <script>
     const API = 'api/timers.php';
+    const BILLING_API = 'api/billing.php';
     const AUDIT_API = 'api/audit.php';
     /** Root-relative: dashboard preview only */
     const TIMER_PREVIEW_PREFIX = <?= json_encode($timerPreviewPrefix, JSON_THROW_ON_ERROR) ?>;
@@ -251,6 +261,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     const TIMER_EMBED_PREFIX = <?= json_encode($timerEmbedPrefix, JSON_THROW_ON_ERROR) ?>;
     let editingId = null;
     let currentTimers = [];
+    let entitlements = null;
 
     function toast(msg) {
       const t = document.getElementById('toast');
@@ -289,6 +300,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       document.getElementById('btn-create').textContent = 'Create timer';
       document.getElementById('btn-cancel-edit').style.display = 'none';
       editingId = null;
+      applyPlanGates();
     }
 
     function startEdit(t) {
@@ -328,6 +340,54 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         '</a>';
     }
 
+    function applyPlanGates() {
+      if (!entitlements) return;
+      const maxed = Number(entitlements.timer_count || 0) >= Number(entitlements.max_timers || 0);
+      const premiumLayouts = !!entitlements.allow_premium_layouts;
+      const premiumFonts = !!entitlements.allow_premium_fonts;
+      const allowedLayouts = premiumLayouts
+        ? ['segmented_pills','split_emphasis','minimal_editorial','progress_hybrid','badge_countdown']
+        : ['segmented_pills','split_emphasis','minimal_editorial'];
+      const allowedFonts = premiumFonts
+        ? ['noto_sans_bold','noto_sans','roboto_bold','roboto','open_sans_bold','open_sans']
+        : ['noto_sans_bold','noto_sans'];
+
+      const layoutSel = document.getElementById('layout_key');
+      Array.from(layoutSel.options).forEach(o => { o.disabled = !allowedLayouts.includes(o.value); });
+      if (!allowedLayouts.includes(layoutSel.value)) layoutSel.value = allowedLayouts[0];
+
+      const fontSel = document.getElementById('font_key');
+      Array.from(fontSel.options).forEach(o => { o.disabled = !allowedFonts.includes(o.value); });
+      if (!allowedFonts.includes(fontSel.value)) fontSel.value = allowedFonts[0];
+
+      const createBtn = document.getElementById('btn-create');
+      if (maxed && !editingId) {
+        createBtn.disabled = true;
+        createBtn.title = 'Plan limit reached. Upgrade to create more timers.';
+      } else {
+        createBtn.disabled = false;
+        createBtn.title = '';
+      }
+    }
+
+    async function loadBilling() {
+      try {
+        const r = await fetch(BILLING_API, { credentials: 'same-origin' });
+        if (!r.ok) return;
+        const j = await r.json();
+        entitlements = j.entitlements || null;
+        if (!entitlements) return;
+        const title = document.getElementById('billing-title');
+        const kpis = document.getElementById('billing-kpis');
+        title.textContent = 'Plan: ' + (entitlements.plan_name || entitlements.plan_key || 'Unknown');
+        kpis.innerHTML =
+          '<span>Timers <strong>' + Number(entitlements.timer_count || 0) + ' / ' + Number(entitlements.max_timers || 0) + '</strong></span>' +
+          '<span>Layouts <strong>' + (entitlements.allow_premium_layouts ? 'All' : 'Core only') + '</strong></span>' +
+          '<span>Fonts <strong>' + (entitlements.allow_premium_fonts ? 'All' : 'Core only') + '</strong></span>';
+        applyPlanGates();
+      } catch (e) {}
+    }
+
     async function loadAudit() {
       const el = document.getElementById('audit');
       try {
@@ -365,6 +425,8 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
           return;
         }
         const j = await r.json();
+        entitlements = j.entitlements || entitlements;
+        applyPlanGates();
         if (!j.timers || !j.timers.length) {
           currentTimers = [];
           list.innerHTML = '<p class="empty">No timers yet. Create one above.</p>';
@@ -495,8 +557,12 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     document.getElementById('btn-cancel-edit').addEventListener('click', () => {
       resetCreateForm();
     });
+    document.getElementById('btn-upgrade').addEventListener('click', () => {
+      toast('Upgrade flow placeholder: connect Stripe checkout to workspace_billing.');
+    });
 
     resetCreateForm();
+    loadBilling();
     loadList();
     loadAudit();
   </script>

@@ -88,6 +88,7 @@ Point the document root (or a URL path) at this project, then open `install.php`
 | `PUT` | `api/timers.php` | Update timer (same roles; JSON body includes `id`) |
 | `DELETE` | `api/timers.php?id=ID` | Delete timer (same roles) |
 | `GET` | `api/audit.php` | Workspace audit log (`owner` / `admin` / `editor`; optional `limit` ≤ 100) |
+| `GET` | `api/billing.php` | Workspace plan + usage entitlements (timer caps, premium features) |
 
 Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }`. Missing write permission returns **403**.
 
@@ -99,7 +100,9 @@ auth.php              # Session login helpers
 login.php / logout.php
 api/timers.php        # JSON CRUD (auth + workspace scoped)
 api/audit.php         # Workspace audit entries (auth)
+api/billing.php       # Workspace billing + entitlements (auth)
 lib/platform.php      # workspaces / users migrations + audit helpers
+lib/monetization.php  # plan catalog + feature gating helpers
 config.php            # SQLite, JSON helpers, root-relative timer URL helper
 timer.php             # GIF (default) or PNG image (public)
 index.php             # Dashboard UI (auth required)

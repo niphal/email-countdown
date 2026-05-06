@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/lib/timer_fonts.php';
 require_once dirname(__DIR__) . '/lib/timer_layouts.php';
+require_once dirname(__DIR__) . '/lib/monetization.php';
 require_once dirname(__DIR__) . '/auth.php';
 
 auth_start_session();
@@ -28,7 +29,8 @@ try {
             $row['dynamic_sig'] = app_timer_signature_for_id((string) ($row['id'] ?? ''));
         }
         unset($row);
-        json_response(['timers' => $rows]);
+        $ent = billing_workspace_entitlements(db(), $workspaceId);
+        json_response(['timers' => $rows, 'entitlements' => $ent]);
     }
 
     if ($method === 'POST') {
@@ -52,9 +54,10 @@ try {
         $layoutKey = timer_normalize_layout_key((string) ($body['layout_key'] ?? 'segmented_pills'));
         $now = time();
         $pdo = db();
+        $ent = billing_assert_timer_create_allowed($pdo, $workspaceId, $layoutKey, $fontKey);
         $stmt = $pdo->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, workspace_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $stmt->execute([$id, $name, $endsAt, $bg, $fg, $ac, $label, $w, $h, $fontKey, $fontSizeMain, $layoutKey, $workspaceId, $now]);
-        platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, 'timer.created', 'timer', $id, ['name' => $name, 'ends_at' => $endsAt]);
+        platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, 'timer.created', 'timer', $id, ['name' => $name, 'ends_at' => $endsAt, 'plan' => $ent['plan_key']]);
         json_response(['id' => $id]);
     }
 
@@ -81,6 +84,7 @@ try {
         $fontSizeMain = clamp_int((int) ($body['font_size_main'] ?? 32), 14, 72);
         $layoutKey = timer_normalize_layout_key((string) ($body['layout_key'] ?? 'segmented_pills'));
         $pdo = db();
+        billing_assert_timer_update_allowed($pdo, $workspaceId, $layoutKey, $fontKey);
         $stmt = $pdo->prepare('UPDATE timers SET name = ?, ends_at = ?, bg_color = ?, text_color = ?, accent_color = ?, label = ?, width = ?, height = ?, font_key = ?, font_size_main = ?, layout_key = ? WHERE id = ? AND workspace_id = ?');
         $stmt->execute([$name, $endsAt, $bg, $fg, $ac, $label, $w, $h, $fontKey, $fontSizeMain, $layoutKey, $id, $workspaceId]);
         if ($stmt->rowCount() < 1) {
