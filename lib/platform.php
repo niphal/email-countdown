@@ -50,10 +50,6 @@ function platform_schema_migrate(PDO $pdo): void
         created_at INTEGER NOT NULL
     )');
 
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_timers_workspace ON timers(workspace_id)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_audit_workspace_created ON audit_log(workspace_id, created_at DESC)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(email)');
-
     $tcols = [];
     foreach ($pdo->query('PRAGMA table_info(timers)') as $row) {
         $tcols[(string) $row['name']] = true;
@@ -61,6 +57,10 @@ function platform_schema_migrate(PDO $pdo): void
     if (!isset($tcols['workspace_id'])) {
         $pdo->exec('ALTER TABLE timers ADD COLUMN workspace_id INTEGER NOT NULL DEFAULT 1');
     }
+
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_timers_workspace ON timers(workspace_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_audit_workspace_created ON audit_log(workspace_id, created_at DESC)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(email)');
 
     $wsCount = (int) $pdo->query('SELECT COUNT(*) FROM workspaces')->fetchColumn();
     if ($wsCount === 0) {
