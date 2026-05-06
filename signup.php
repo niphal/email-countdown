@@ -52,18 +52,22 @@ $csrf = auth_csrf_token();
   <title>Sign up — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
-    :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; --bad:#f87171; }
+    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --bad:#b91c1c; --ring:rgba(0,66,37,.18); }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1rem; }
-    .card { width:100%; max-width:500px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
-    h1 { font-family:var(--font-display); font-size:1.25rem; margin:0 0 1rem; font-weight:700; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
-    label { display:block; font-size:.8rem; color:var(--muted); margin-bottom:.35rem; }
-    input { width:100%; padding:.6rem .65rem; border-radius:8px; border:1px solid var(--border); background:#0f1117; color:var(--text); font-size:1rem; }
-    button { margin-top:1rem; width:100%; padding:.65rem; border:0; border-radius:8px; font-weight:600; cursor:pointer; background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; }
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:var(--font-body); background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color:var(--text); padding:1rem; }
+    .card { width:100%; max-width:540px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.65rem; box-shadow:0 10px 28px rgba(17,24,39,.08); }
+    h1 { font-family:var(--font-display); font-size:1.4rem; margin:0 0 1rem; font-weight:700; letter-spacing:-.01em; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:.9rem; }
+    label { display:block; font-size:.8rem; color:var(--muted); margin-bottom:.4rem; font-weight:600; }
+    input { width:100%; padding:.6rem .65rem; border-radius:8px; border:1px solid var(--border); background:#ffffff; color:var(--text); font-size:1rem; }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--ring); outline:none; }
+    button { margin-top:1rem; width:100%; padding:.68rem; border:0; border-radius:10px; font-weight:600; cursor:pointer; background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; transition:transform .12s ease,box-shadow .12s ease; }
+    button:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,66,37,.2); }
     .err { color:var(--bad); font-size:.88rem; margin-bottom:.75rem; }
     .hint { font-size:.82rem; color:var(--muted); margin-top:.8rem; }
-    a { color:#a5b4fc; text-decoration:none; }
+    a { color:var(--accent); text-decoration:none; font-weight:600; }
+    a:hover { text-decoration:underline; }
+    @media (max-width: 620px) { .grid { grid-template-columns:1fr; } .card { padding:1.2rem; } h1 { font-size:1.25rem; } }
   </style>
 </head>
 <body>

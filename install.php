@@ -173,13 +173,13 @@ $csrf = auth_csrf_token();
   <title>Install — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
-    :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; --bad:#f87171; --ok:#7ae582; }
+    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --bad:#b91c1c; --ok:#2e7d32; }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1.25rem; line-height:1.45; }
+    body { margin:0; min-height:100vh; font-family:var(--font-body); background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color:var(--text); padding:1.25rem; line-height:1.45; }
     .wrap { max-width:520px; margin:0 auto; }
     h1 { font-family:var(--font-display); font-size:1.35rem; margin:0 0 0.35rem; font-weight:700; }
     .sub { color:var(--muted); font-size:0.95rem; margin-bottom:1.5rem; }
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.25rem 1.5rem; margin-bottom:1rem; box-shadow:0 8px 24px rgba(17,24,39,.06); }
     h2 { font-family:var(--font-ui); font-size:0.95rem; margin:0 0 0.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
     ul.reqs { list-style:none; margin:0; padding:0; font-size:0.9rem; }
     ul.reqs li { padding:0.55rem 0; border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto; gap:0.35rem 1rem; align-items:start; }

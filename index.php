@@ -34,58 +34,65 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #181c27;
-      --border: #2a3142;
-      --text: #e8eaef;
-      --muted: #8b95a8;
-      --accent: #f15bb5;
-      --accent-dim: #c44a92;
-      --ok: #7ae582;
+      --bg: #f3f5f4;
+      --surface: #ffffff;
+      --border: #d9e2dc;
+      --text: #0f1720;
+      --muted: #5c6b62;
+      --accent: #004225;
+      --accent-dim: #0a5a36;
+      --ok: #2e7d32;
+      --ring: rgba(0, 66, 37, 0.18);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       font-family: var(--font-body);
-      background: radial-gradient(1200px 600px at 10% -10%, #1a1530 0%, transparent 50%), var(--bg);
+      background: linear-gradient(180deg, #f8faf9 0%, var(--bg) 100%);
       color: var(--text);
       line-height: 1.5;
     }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 2.5rem 1.35rem 4rem; }
     h1 {
       font-family: var(--font-display);
-      font-size: 1.75rem;
+      font-size: 2rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.35rem;
     }
-    .lede { color: var(--muted); max-width: 52ch; margin-bottom: 2rem; }
+    .lede { color: var(--muted); max-width: 60ch; margin: 0 0 2.1rem; font-size: 0.98rem; }
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1.5rem;
+      border-radius: 14px;
+      padding: 1.35rem 1.55rem;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
     }
-    .panel h2 { font-family: var(--font-ui); font-size: 1rem; margin: 0 0 1rem; font-weight: 600; }
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
+    .panel h2 { font-family: var(--font-ui); font-size: 1.02rem; margin: 0 0 1rem; font-weight: 700; letter-spacing: 0.01em; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.42rem; font-weight: 600; }
     input[type="text"], input[type="datetime-local"], input[type="number"], select {
       width: 100%;
       padding: 0.55rem 0.65rem;
       border-radius: 8px;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: #ffffff;
       color: var(--text);
       font-family: inherit;
       font-size: 0.95rem;
+    }
+    input[type="text"]:focus, input[type="datetime-local"]:focus, input[type="number"]:focus, input[type="color"]:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--ring);
+      outline: none;
     }
     input[type="color"] {
       width: 100%;
       height: 40px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: var(--bg);
+      background: #ffffff;
       cursor: pointer;
     }
     .grid { display: grid; gap: 1rem; }
@@ -98,34 +105,36 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       font-weight: 600;
       font-size: 0.9rem;
       padding: 0.65rem 1.1rem;
-      border-radius: 8px;
+      border-radius: 10px;
       border: none;
       cursor: pointer;
       background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-      color: #0f1117;
+      color: #ffffff;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
     }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0, 66, 37, 0.2); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     button.secondary {
-      background: transparent;
+      background: #ffffff;
       color: var(--text);
       border: 1px solid var(--border);
     }
-    button.danger { background: #3d1f28; color: #ffb3b8; border: 1px solid #5c2a35; }
-    .row-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    button.danger { background: #ffffff; color: #9b1c1c; border: 1px solid #efcaca; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
     .timer-card {
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 1rem;
       margin-bottom: 1rem;
-      background: rgba(0,0,0,0.2);
+      background: #fbfcfb;
     }
-    .timer-card h3 { font-family: var(--font-accent); margin: 0 0 0.25rem; font-size: 1rem; font-weight: 600; }
+    .timer-card h3 { font-family: var(--font-accent); margin: 0 0 0.3rem; font-size: 1.02rem; font-weight: 700; }
     .timer-card .meta { font-size: 0.8rem; color: var(--muted); font-family: var(--font-mono); }
     .embed {
       font-family: var(--font-mono);
       font-size: 0.72rem;
       line-height: 1.4;
-      background: var(--bg);
+      background: #f8faf9;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.75rem;
@@ -137,10 +146,10 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     .preview { margin-top: 0.75rem; }
     .preview img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
     .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
-    .toast { font-family: var(--font-ui); position: fixed; bottom: 1.25rem; right: 1.25rem; background: var(--surface); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; display: none; }
+    .toast { font-family: var(--font-ui); position: fixed; bottom: 1.25rem; right: 1.25rem; background: #ffffff; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(17,24,39,0.12); padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.9rem; display: none; }
     .toast.show { display: block; }
     .empty { color: var(--muted); font-size: 0.95rem; }
-    .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e6ece8; }
     .topbar h1 { margin-bottom: 0; }
     .ws-pill { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); margin-top: 0.35rem; }
     .audit-lines { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); line-height: 1.55; max-height: 220px; overflow-y: auto; }
@@ -149,10 +158,17 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     .billing-kpis { display:flex; gap:1rem; flex-wrap:wrap; font-size:0.82rem; color:var(--muted); }
     .billing-kpis span strong { color: var(--text); }
     .menu { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .55rem; }
-    .menu a { color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: 8px; padding: .35rem .6rem; font-size: .8rem; }
-    .menu a.active { border-color: var(--accent); }
-    a.logout { color: var(--muted); font-size: 0.9rem; text-decoration: none; padding: 0.35rem 0; }
+    .menu a { color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: .38rem .75rem; font-size: .8rem; font-weight: 600; }
+    .menu a.active { border-color: var(--accent); color: var(--accent); background: #f5fbf7; }
+    a.logout { color: var(--muted); font-size: 0.88rem; text-decoration: none; padding: 0.45rem 0; font-weight: 600; }
     a.logout:hover { color: var(--text); text-decoration: underline; }
+    @media (max-width: 640px) {
+      .wrap { padding: 1.2rem 0.9rem 2.6rem; }
+      h1 { font-size: 1.55rem; }
+      .panel { padding: 1rem; }
+      .row-actions button { width: 100%; }
+      .menu { margin-top: 0.7rem; }
+    }
   </style>
 </head>
 <body>

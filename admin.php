@@ -26,25 +26,30 @@ if ($cu !== null) {
   <title>Admin — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
-    :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; }
+    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --ring:rgba(0,66,37,.18); }
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font-body)}
-    .wrap{max-width:980px;margin:0 auto;padding:2rem 1.25rem 3rem}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%);color:var(--text);font-family:var(--font-body)}
+    .wrap{max-width:1080px;margin:0 auto;padding:2.4rem 1.35rem 3rem}
     .top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
-    h1{margin:.1rem 0 .2rem;font-family:var(--font-display)}
+    h1{margin:.1rem 0 .25rem;font-family:var(--font-display);font-size:1.95rem;letter-spacing:-.02em}
     .pill{font-size:.82rem;color:var(--muted);font-family:var(--font-mono)}
-    .menu{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
-    .menu a{color:var(--text);text-decoration:none;border:1px solid var(--border);padding:.45rem .7rem;border-radius:8px;font-size:.85rem}
-    .menu a.active{border-color:var(--accent)}
-    .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1rem}
+    .menu{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.15rem}
+    .menu a{color:var(--text);text-decoration:none;border:1px solid var(--border);padding:.4rem .78rem;border-radius:999px;font-size:.82rem;font-weight:600}
+    .menu a.active{border-color:var(--accent);color:var(--accent);background:#f5fbf7}
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:0 6px 18px rgba(17,24,39,.06)}
     table{width:100%;border-collapse:collapse;font-size:.88rem}
-    th,td{padding:.5rem .3rem;border-bottom:1px solid var(--border);text-align:left}
-    input,select{width:100%;padding:.5rem .55rem;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
-    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem}
-    button{padding:.55rem .8rem;border:none;border-radius:8px;background:linear-gradient(135deg,var(--accent),#c44a92);color:#0f1117;font-weight:600;cursor:pointer}
-    button.secondary{background:transparent;color:var(--text);border:1px solid var(--border)}
-    .row{display:flex;gap:.5rem;align-items:center}
+    th{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    th,td{padding:.6rem .35rem;border-bottom:1px solid var(--border);text-align:left}
+    input,select{width:100%;padding:.55rem .6rem;border:1px solid var(--border);border-radius:8px;background:#ffffff;color:var(--text)}
+    input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring);outline:none}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
+    button{padding:.58rem .85rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));color:#ffffff;font-weight:600;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+    button:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(0,66,37,.2)}
+    button.secondary{background:#ffffff;color:var(--text);border:1px solid var(--border)}
+    .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
     .muted{color:var(--muted);font-size:.82rem}
+    @media (max-width: 860px){.grid{grid-template-columns:1fr 1fr}}
+    @media (max-width: 620px){.wrap{padding:1.2rem .9rem 2rem}.grid{grid-template-columns:1fr}h1{font-size:1.55rem}.row > *{width:100%}}
   </style>
 </head>
 <body>

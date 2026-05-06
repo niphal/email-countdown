@@ -44,20 +44,24 @@ $next = auth_redirect_target($_GET['next'] ?? null);
   <title>Sign in — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
-    :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; --bad:#f87171; }
+    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --bad:#b91c1c; --ok:#2e7d32; --ring:rgba(0,66,37,.18); }
     * { box-sizing: border-box; }
     body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-      font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1rem; }
-    .card { width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
-    h1 { font-family:var(--font-display); font-size:1.2rem; margin:0 0 1rem; font-weight:700; }
-    label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.35rem; }
-    input[type="password"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border);
-      background:#0f1117; color:var(--text); font-size:1rem; margin-bottom:1rem; }
+      font-family:var(--font-body); background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color:var(--text); padding:1rem; }
+    .card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.65rem; box-shadow:0 10px 28px rgba(17,24,39,.08); }
+    h1 { font-family:var(--font-display); font-size:1.35rem; margin:0 0 0.35rem; font-weight:700; letter-spacing:-.01em; }
+    label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.4rem; font-weight:600; }
+    input[type="email"], input[type="password"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border);
+      background:#ffffff; color:var(--text); font-size:1rem; margin-bottom:1rem; }
+    input[type="email"]:focus, input[type="password"]:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--ring); outline:none; }
     button { font-family:var(--font-ui); width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
-      background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; }
+      background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; transition:transform .12s ease, box-shadow .12s ease; }
+    button:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,66,37,.2); }
     .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }
     .hint { font-size:0.82rem; color:var(--muted); margin-top:1rem; line-height:1.45; }
-    .ok { color:#7ae582; font-size:0.88rem; margin-bottom:0.75rem; }
+    .ok { color:var(--ok); font-size:0.88rem; margin-bottom:0.75rem; }
+    .hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>

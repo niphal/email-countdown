@@ -33,15 +33,15 @@ $csrf = auth_csrf_token();
   <title>Forgot password — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
   <style>
-    :root { --bg:#0f1117; --surface:#181c27; --border:#2a3142; --text:#e8eaef; --muted:#8b95a8; --accent:#f15bb5; --bad:#f87171; --ok:#7ae582; }
+    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --bad:#b91c1c; --ok:#2e7d32; }
     * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:var(--font-body); background:var(--bg); color:var(--text); padding:1rem; }
-    .card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:var(--font-body); background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color:var(--text); padding:1rem; }
+    .card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.5rem; box-shadow:0 10px 28px rgba(17,24,39,.08); }
     h1 { margin:0 0 0.75rem; font-family:var(--font-display); font-size:1.25rem; }
     p { color:var(--muted); font-size:0.9rem; }
     label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.35rem; margin-top:0.7rem; }
-    input { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border); background:#0f1117; color:var(--text); }
-    button { margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; cursor:pointer; }
+    input { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border); background:#ffffff; color:var(--text); }
+    button { margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; cursor:pointer; }
     .err { color:var(--bad); font-size:0.88rem; margin-top:0.5rem; }
     .ok { color:var(--ok); font-size:0.88rem; margin-top:0.5rem; }
     a { color:#a5b4fc; text-decoration:none; }
