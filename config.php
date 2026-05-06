@@ -135,9 +135,12 @@ function db(): PDO
         font_key TEXT NOT NULL DEFAULT "noto_sans_bold",
         font_size_main INTEGER NOT NULL DEFAULT 32,
         layout_key TEXT NOT NULL DEFAULT "segmented_pills",
+        workspace_id INTEGER NOT NULL DEFAULT 1,
         created_at INTEGER NOT NULL
     )');
     db_migrate_timers($pdo);
+    require_once __DIR__ . '/lib/platform.php';
+    platform_schema_migrate($pdo);
 
     return $pdo;
 }
@@ -156,6 +159,9 @@ function db_migrate_timers(PDO $pdo): void
     }
     if (!isset($cols['layout_key'])) {
         $pdo->exec('ALTER TABLE timers ADD COLUMN layout_key TEXT NOT NULL DEFAULT "segmented_pills"');
+    }
+    if (!isset($cols['workspace_id'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN workspace_id INTEGER NOT NULL DEFAULT 1');
     }
     if (isset($cols['font_key'])) {
         $pdo->exec("UPDATE timers SET font_key = 'noto_sans_bold' WHERE font_key IN ('system','dejavu_bold','segoe_bold','arial_bold')");

@@ -47,7 +47,8 @@ Point the document root (or a URL path) at this project, then open `install.php`
 - Until **`data/secrets.php`** contains a valid password hash, **`index.php`** redirects to **`install.php`** (and the API returns **503** with an `install` hint).
 - Optional **`public_base_url`** in **`data/secrets.php`** (HTTPS, no trailing slash): used as the origin for **absolute** `img src` URLs in copied email HTML. If unset, the app uses the current request’s `Host` (set it when the admin UI is only on an internal URL).
 - Installer/CLI setup also creates **`timer_signing_key`** in `data/secrets.php` for signed dynamic timer URLs.
-- **`index.php`** (dashboard) and **`api/timers.php`** require a signed-in session (password from `data/secrets.php`).
+- Sign-in uses **`data/secrets.php`** to bootstrap a **seeded owner** in SQLite (`users` + `workspace_members`) on first successful login. Use the seeded email **`owner@local.invalid`** (shown on the login form) plus the installer password unless you added other users in the DB. Production teams can add more users directly in the database for now; roles are **`owner`**, **`admin`**, **`editor`**, **`viewer`** (viewers can list timers but cannot create, update, or delete).
+- **`index.php`** (dashboard) and **`api/*.php`** admin endpoints require a signed-in session with valid user + workspace context.
 - **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
 - Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
 - Login form includes a **CSRF** token. After **5 failed** password attempts, login is blocked for **60 seconds**.
@@ -82,11 +83,13 @@ Point the document root (or a URL path) at this project, then open `install.php`
 
 | Method | URL | Purpose |
 |--------|-----|---------|
-| `GET` | `api/timers.php` | List timers |
-| `POST` | `api/timers.php` | Create timer (JSON body: `name`, `ends_at`, optional `label`, colors, `width`, `height`) |
-| `DELETE` | `api/timers.php?id=ID` | Delete timer |
+| `GET` | `api/timers.php` | List timers in the current workspace |
+| `POST` | `api/timers.php` | Create timer (`owner` / `admin` / `editor` only; JSON body: `name`, `ends_at`, optional `label`, colors, dimensions, fonts, layout) |
+| `PUT` | `api/timers.php` | Update timer (same roles; JSON body includes `id`) |
+| `DELETE` | `api/timers.php?id=ID` | Delete timer (same roles) |
+| `GET` | `api/audit.php` | Workspace audit log (`owner` / `admin` / `editor`; optional `limit` ≤ 100) |
 
-Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }`.
+Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }`. Missing write permission returns **403**.
 
 ## Project layout
 
@@ -94,7 +97,9 @@ Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }
 install.php           # Web installer (run once)
 auth.php              # Session login helpers
 login.php / logout.php
-api/timers.php        # JSON CRUD (auth required)
+api/timers.php        # JSON CRUD (auth + workspace scoped)
+api/audit.php         # Workspace audit entries (auth)
+lib/platform.php      # workspaces / users migrations + audit helpers
 config.php            # SQLite, JSON helpers, root-relative timer URL helper
 timer.php             # GIF (default) or PNG image (public)
 index.php             # Dashboard UI (auth required)

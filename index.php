@@ -9,6 +9,17 @@ auth_require_login_redirect();
 // Touch DB so fresh installs have data dir
 db();
 
+$workspaceBanner = '';
+$cu = auth_current_user();
+if ($cu !== null) {
+    $wst = db()->prepare('SELECT name FROM workspaces WHERE id = ?');
+    $wst->execute([(int) $cu['workspace_id']]);
+    $wn = $wst->fetchColumn();
+    if ($wn !== false) {
+        $workspaceBanner = (string) $wn;
+    }
+}
+
 $timerPreviewPrefix = app_timer_url_prefix();
 $timerEmbedPrefix = app_timer_embed_src_prefix();
 $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
@@ -130,6 +141,9 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     .empty { color: var(--muted); font-size: 0.95rem; }
     .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
     .topbar h1 { margin-bottom: 0; }
+    .ws-pill { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); margin-top: 0.35rem; }
+    .audit-lines { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); line-height: 1.55; max-height: 220px; overflow-y: auto; }
+    .audit-lines div { padding: 0.2rem 0; border-bottom: 1px solid var(--border); }
     a.logout { color: var(--muted); font-size: 0.9rem; text-decoration: none; padding: 0.35rem 0; }
     a.logout:hover { color: var(--text); text-decoration: underline; }
   </style>
@@ -137,7 +151,10 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
 <body>
   <div class="wrap">
     <div class="topbar">
-      <h1>Email countdown timers</h1>
+      <div>
+        <h1>Email countdown timers</h1>
+        <?php if ($workspaceBanner !== ''): ?><div class="ws-pill">Workspace: <?= htmlspecialchars($workspaceBanner, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+      </div>
       <a class="logout" href="logout.php">Log out</a>
     </div>
     <p class="lede">Create timers that render as animated GIFs (about 20 one-second frames from load time)—safe for Braze and other ESPs (no JavaScript in email). Add <code>?format=png</code> to the image URL for a single static PNG instead. Paste the HTML into the Braze email editor.</p>
@@ -197,12 +214,19 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       <p class="note" style="margin:0 0 1rem;">Image text uses open-licensed TrueType fonts from the official Google Fonts GitHub sources. Each file is downloaded once into <code>data/fonts/</code> on the server (PHP GD cannot use CSS webfonts).</p>
       <div class="row-actions">
         <button type="submit" form="create-form" id="btn-create">Create timer</button>
+        <button type="button" id="btn-cancel-edit" class="secondary" style="display:none;">Cancel edit</button>
       </div>
     </div>
 
     <div class="panel">
       <h2>Your timers</h2>
       <div id="list"><p class="empty">Loading…</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>Audit log</h2>
+      <p class="note" style="margin:0 0 0.75rem;">Recent changes in this workspace (owner / admin / editor).</p>
+      <div id="audit" class="audit-lines"><span class="empty">Loading…</span></div>
     </div>
 
     <div class="panel">
@@ -220,10 +244,13 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
 
   <script>
     const API = 'api/timers.php';
+    const AUDIT_API = 'api/audit.php';
     /** Root-relative: dashboard preview only */
     const TIMER_PREVIEW_PREFIX = <?= json_encode($timerPreviewPrefix, JSON_THROW_ON_ERROR) ?>;
     /** Absolute https? URL for pasted email HTML (from request host or public_base_url in secrets) */
     const TIMER_EMBED_PREFIX = <?= json_encode($timerEmbedPrefix, JSON_THROW_ON_ERROR) ?>;
+    let editingId = null;
+    let currentTimers = [];
 
     function toast(msg) {
       const t = document.getElementById('toast');
@@ -236,6 +263,50 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     function toUnix(s) {
       const d = new Date(s);
       return Math.floor(d.getTime() / 1000);
+    }
+
+    function toLocalDateTimeValue(unixTs) {
+      const d = new Date(unixTs * 1000);
+      const pad = n => String(n).padStart(2, '0');
+      const y = d.getFullYear();
+      const m = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mm = pad(d.getMinutes());
+      return `${y}-${m}-${day}T${hh}:${mm}`;
+    }
+
+    function resetCreateForm() {
+      document.getElementById('create-form').reset();
+      document.getElementById('bg').value = '#1a1a2e';
+      document.getElementById('fg').value = '#eaeaea';
+      document.getElementById('ac').value = '#e94560';
+      document.getElementById('width').value = '560';
+      document.getElementById('height').value = '140';
+      document.getElementById('font_key').value = 'noto_sans_bold';
+      document.getElementById('font_size_main').value = '32';
+      document.getElementById('layout_key').value = 'segmented_pills';
+      document.getElementById('btn-create').textContent = 'Create timer';
+      document.getElementById('btn-cancel-edit').style.display = 'none';
+      editingId = null;
+    }
+
+    function startEdit(t) {
+      editingId = t.id;
+      document.getElementById('name').value = t.name || '';
+      document.getElementById('ends').value = toLocalDateTimeValue(Number(t.ends_at || 0));
+      document.getElementById('label').value = t.label || '';
+      document.getElementById('bg').value = t.bg_color || '#1a1a2e';
+      document.getElementById('fg').value = t.text_color || '#eaeaea';
+      document.getElementById('ac').value = t.accent_color || '#e94560';
+      document.getElementById('width').value = String(Number(t.width || 560));
+      document.getElementById('height').value = String(Number(t.height || 140));
+      document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
+      document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
+      document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
+      document.getElementById('btn-create').textContent = 'Save changes';
+      document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function embedHtml(id, width) {
@@ -257,6 +328,30 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         '</a>';
     }
 
+    async function loadAudit() {
+      const el = document.getElementById('audit');
+      try {
+        const r = await fetch(AUDIT_API + '?limit=40', { credentials: 'same-origin' });
+        if (!r.ok) {
+          el.innerHTML = '<span class="empty">Audit unavailable (sign in again or upgrade database).</span>';
+          return;
+        }
+        const j = await r.json();
+        const rows = j.entries || [];
+        if (!rows.length) {
+          el.innerHTML = '<span class="empty">No activity yet.</span>';
+          return;
+        }
+        el.innerHTML = rows.map(row => {
+          const t = new Date((row.created_at || 0) * 1000);
+          const ts = t.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+          return '<div>' + escapeHtml(ts) + ' · ' + escapeHtml(row.action || '') + ' · ' + escapeHtml(row.entity_type || '') + ' ' + escapeHtml(String(row.entity_id || '').slice(0, 12)) + '…</div>';
+        }).join('');
+      } catch (e) {
+        el.innerHTML = '<span class="empty">Could not load audit log.</span>';
+      }
+    }
+
     async function loadList() {
       const list = document.getElementById('list');
       try {
@@ -271,9 +366,11 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         }
         const j = await r.json();
         if (!j.timers || !j.timers.length) {
+          currentTimers = [];
           list.innerHTML = '<p class="empty">No timers yet. Create one above.</p>';
           return;
         }
+        currentTimers = j.timers;
         list.innerHTML = '';
         for (const t of j.timers) {
           const card = document.createElement('div');
@@ -287,6 +384,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
             '<div class="row-actions">' +
             '<button type="button" class="secondary btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '">Copy HTML</button>' +
             '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '">Copy Dynamic HTML</button>' +
+            '<button type="button" class="secondary btn-edit" data-id="' + escapeHtml(t.id) + '">Edit</button>' +
             '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button></div>';
           const img = document.createElement('img');
           img.alt = 'Preview';
@@ -329,6 +427,15 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
             }
             toast('Deleted');
             loadList();
+            loadAudit();
+          });
+        });
+        list.querySelectorAll('.btn-edit').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const t = currentTimers.find(x => x.id === id);
+            if (!t) return;
+            startEdit(t);
           });
         });
       } catch (e) {
@@ -347,6 +454,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       if (!name || !ends) return;
       const ends_at = toUnix(ends);
       const body = {
+        id: editingId || undefined,
         name,
         ends_at,
         label: document.getElementById('label').value.trim(),
@@ -362,7 +470,8 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       const btn = document.getElementById('btn-create');
       btn.disabled = true;
       try {
-        const r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const method = editingId ? 'PUT' : 'POST';
+        const r = await fetch(API, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (r.status === 503) {
           window.location.href = 'install.php';
           return;
@@ -373,24 +482,23 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         }
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Save failed');
-        toast('Timer created');
-        document.getElementById('create-form').reset();
-        document.getElementById('bg').value = '#1a1a2e';
-        document.getElementById('fg').value = '#eaeaea';
-        document.getElementById('ac').value = '#e94560';
-        document.getElementById('width').value = '560';
-        document.getElementById('height').value = '140';
-        document.getElementById('font_key').value = 'noto_sans_bold';
-        document.getElementById('font_size_main').value = '32';
-        document.getElementById('layout_key').value = 'segmented_pills';
+        toast(editingId ? 'Timer updated' : 'Timer created');
+        resetCreateForm();
         loadList();
+        loadAudit();
       } catch (err) {
         toast(err.message || 'Error');
       }
       btn.disabled = false;
     });
 
+    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+      resetCreateForm();
+    });
+
+    resetCreateForm();
     loadList();
+    loadAudit();
   </script>
 </body>
 </html>

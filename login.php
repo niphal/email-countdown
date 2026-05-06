@@ -25,7 +25,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'Invalid session. Refresh the page and try again.';
     } elseif (auth_is_locked()) {
         $error = 'Too many attempts. Try again in ' . auth_lock_seconds_remaining() . ' seconds.';
-    } elseif (auth_attempt_login((string) ($_POST['password'] ?? ''))) {
+    } elseif (auth_attempt_login((string) ($_POST['password'] ?? ''), (string) ($_POST['email'] ?? ''))) {
         header('Location: ' . auth_redirect_target($_POST['next'] ?? ($_GET['next'] ?? null)));
         exit;
     } else {
@@ -68,10 +68,13 @@ $next = auth_redirect_target($_GET['next'] ?? null);
     <form method="post" action="login.php">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="next" value="<?= htmlspecialchars($next, ENT_QUOTES, 'UTF-8') ?>">
+      <label for="email">Work email</label>
+      <input type="email" id="email" name="email" required autocomplete="username" value="<?= htmlspecialchars(platform_seed_owner_email(), ENT_QUOTES, 'UTF-8') ?>">
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
       <button type="submit">Continue</button>
     </form>
+    <p class="hint">Default installs use the seeded owner mailbox above (password from install). Invite additional workspace members via the DB or a future admin UI.</p>
   </div>
 </body>
 </html>

@@ -21,6 +21,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once dirname(__DIR__) . '/config.php';
+require_once dirname(__DIR__) . '/lib/platform.php';
 
 $root = dirname(__DIR__);
 $example = $root . '/data/secrets.example.php';
@@ -102,6 +103,8 @@ if (file_put_contents($target, $body) === false) {
     fwrite(STDERR, "Could not write {$target}\n");
     exit(1);
 }
+
+platform_seed_owner_user_from_secrets(db());
 
 fwrite(STDOUT, "Updated password_hash in {$target}\n");
 fwrite(STDOUT, "Reload login.php in your browser and sign in.\n");

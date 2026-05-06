@@ -151,7 +151,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 if (file_put_contents($target, $body) === false) {
                     $error = 'Could not write data/secrets.php. Check permissions on data/.';
                 } else {
-                    db();
+                    $pdo = db();
+                    platform_seed_owner_user_from_secrets($pdo);
                     timer_font_warm_all();
                     header('Location: login.php?installed=1', true, 302);
                     exit;
