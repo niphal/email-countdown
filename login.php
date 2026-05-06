@@ -60,12 +60,20 @@ $next = auth_redirect_target($_GET['next'] ?? null);
     .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }
     .hint { font-size:0.82rem; color:var(--muted); margin-top:1rem; line-height:1.45; }
     .ok { color:var(--ok); font-size:0.88rem; margin-bottom:0.75rem; }
+    .menu { display:flex; gap:.45rem; flex-wrap:wrap; margin:0 0 1rem; }
+    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.34rem .68rem; font-size:.78rem; font-weight:600; }
+    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
     .hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .hint a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="menu">
+      <a href="login.php" class="active">Sign in</a>
+      <a href="signup.php">Sign up</a>
+      <a href="forgot_password.php">Forgot password</a>
+    </div>
     <h1>Sign in</h1>
     <?php if ($installedBanner): ?><p class="ok">Installation finished. Sign in with the password you chose.</p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>

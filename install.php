@@ -14,6 +14,8 @@ require_once __DIR__ . '/auth.php';
 auth_start_session();
 
 if (auth_is_installed()) {
+    $isLoggedIn = auth_is_logged_in();
+    $canSeeAdmin = $isLoggedIn && auth_has_min_role(AUTH_ROLE_ADMIN);
     header('Content-Type: text/html; charset=utf-8');
     ?>
 <!DOCTYPE html>
@@ -36,7 +38,15 @@ if (auth_is_installed()) {
   <div class="card">
     <h1>Already installed</h1>
     <p>This app has a dashboard password configured. To reinstall, remove <code>data/secrets.php</code> on the server (and keep a backup if needed), then reload this page.</p>
-    <p><a href="login.php">Sign in</a> · <a href="index.php">Dashboard</a></p>
+    <p>
+      <?php if ($isLoggedIn): ?>
+        <a href="index.php">Dashboard</a>
+        <?php if ($canSeeAdmin): ?> · <a href="admin.php">Admin</a><?php endif; ?>
+        · <a href="logout.php">Log out</a>
+      <?php else: ?>
+        <a href="login.php">Sign in</a> · <a href="signup.php">Sign up</a> · <a href="forgot_password.php">Forgot password</a>
+      <?php endif; ?>
+    </p>
   </div>
 </body>
 </html>
@@ -189,17 +199,26 @@ $csrf = auth_csrf_token();
     .fail { color:var(--bad); font-weight:600; }
     label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.35rem; margin-top:0.75rem; }
     label:first-of-type { margin-top:0; }
-    input[type="password"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border); background:#0f1117; color:var(--text); font-size:1rem; }
+    .menu { display:flex; gap:.5rem; flex-wrap:wrap; margin:0 0 1rem; }
+    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.35rem .72rem; font-size:.8rem; font-weight:600; }
+    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
+    input[type="password"], input[type="url"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border); background:#ffffff; color:var(--text); font-size:1rem; }
     button { font-family:var(--font-ui); margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
-      background:linear-gradient(135deg,var(--accent),#c44a92); color:#0f1117; }
+      background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; }
     button:disabled { opacity:0.45; cursor:not-allowed; }
     .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }
     .foot { font-size:0.82rem; color:var(--muted); margin-top:1.25rem; }
-    code { font-size:0.85em; background:#0f1117; padding:0.1em 0.35em; border-radius:4px; }
+    code { font-size:0.85em; background:#eef3ef; padding:0.1em 0.35em; border-radius:4px; }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="menu">
+      <a href="install.php" class="active">Install</a>
+      <a href="login.php">Sign in</a>
+      <a href="signup.php">Sign up</a>
+      <a href="forgot_password.php">Forgot password</a>
+    </div>
     <h1>Install Email countdown</h1>
     <p class="sub">Like WordPress: check the server, set your dashboard password, then sign in. Timer images stay public for email clients.</p>
 

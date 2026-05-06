@@ -14,6 +14,8 @@ if (!auth_is_installed()) {
 
 $error = '';
 $ok = false;
+$isLoggedIn = auth_is_logged_in();
+$canSeeAdmin = $isLoggedIn && auth_has_min_role(AUTH_ROLE_ADMIN);
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!auth_verify_csrf($_POST['csrf'] ?? null)) {
         $error = 'Invalid session. Refresh and try again.';
@@ -44,11 +46,26 @@ $csrf = auth_csrf_token();
     button { margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; cursor:pointer; }
     .err { color:var(--bad); font-size:0.88rem; margin-top:0.5rem; }
     .ok { color:var(--ok); font-size:0.88rem; margin-top:0.5rem; }
-    a { color:#a5b4fc; text-decoration:none; }
+    .menu { display:flex; gap:.45rem; flex-wrap:wrap; margin:0 0 1rem; }
+    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.34rem .68rem; font-size:.78rem; font-weight:600; }
+    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
+    a { color:var(--accent); text-decoration:none; font-weight:600; }
+    a:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="menu">
+      <?php if ($isLoggedIn): ?>
+        <a href="index.php">Dashboard</a>
+        <?php if ($canSeeAdmin): ?><a href="admin.php">Admin</a><?php endif; ?>
+        <a href="logout.php">Log out</a>
+      <?php else: ?>
+        <a href="login.php">Sign in</a>
+        <a href="signup.php">Sign up</a>
+        <a href="forgot_password.php" class="active">Forgot password</a>
+      <?php endif; ?>
+    </div>
     <h1>Forgot password</h1>
     <p>Enter your account email and we will generate a reset link.</p>
     <?php if ($error !== ''): ?><div class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
@@ -59,7 +76,7 @@ $csrf = auth_csrf_token();
       <input type="email" id="email" name="email" required autocomplete="username">
       <button type="submit">Send reset link</button>
     </form>
-    <p style="margin-top:0.8rem;"><a href="login.php">Back to sign in</a></p>
+    <p style="margin-top:0.8rem;"><a href="<?= $isLoggedIn ? 'index.php' : 'login.php' ?>"><?= $isLoggedIn ? 'Back to dashboard' : 'Back to sign in' ?></a></p>
   </div>
 </body>
 </html>

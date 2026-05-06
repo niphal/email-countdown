@@ -15,6 +15,8 @@ if (!auth_is_installed()) {
 $token = trim((string) ($_GET['token'] ?? $_POST['token'] ?? ''));
 $error = '';
 $ok = false;
+$isLoggedIn = auth_is_logged_in();
+$canSeeAdmin = $isLoggedIn && auth_has_min_role(AUTH_ROLE_ADMIN);
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!auth_verify_csrf($_POST['csrf'] ?? null)) {
@@ -55,11 +57,27 @@ $csrf = auth_csrf_token();
     button { margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; cursor:pointer; }
     .err { color:var(--bad); font-size:0.88rem; margin-top:0.5rem; }
     .ok { color:var(--ok); font-size:0.88rem; margin-top:0.5rem; }
-    a { color:#a5b4fc; text-decoration:none; }
+    .menu { display:flex; gap:.45rem; flex-wrap:wrap; margin:0 0 1rem; }
+    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.34rem .68rem; font-size:.78rem; font-weight:600; }
+    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
+    a { color:var(--accent); text-decoration:none; font-weight:600; }
+    a:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="menu">
+      <?php if ($isLoggedIn): ?>
+        <a href="index.php">Dashboard</a>
+        <?php if ($canSeeAdmin): ?><a href="admin.php">Admin</a><?php endif; ?>
+        <a href="logout.php">Log out</a>
+      <?php else: ?>
+        <a href="login.php">Sign in</a>
+        <a href="signup.php">Sign up</a>
+        <a href="forgot_password.php">Forgot password</a>
+        <a href="reset_password.php" class="active">Reset password</a>
+      <?php endif; ?>
+    </div>
     <h1>Reset password</h1>
     <?php if ($ok): ?>
       <div class="ok">Password changed. <a href="login.php">Sign in now</a>.</div>
@@ -76,7 +94,7 @@ $csrf = auth_csrf_token();
         <button type="submit">Reset password</button>
       </form>
     <?php endif; ?>
-    <p style="margin-top:0.8rem;"><a href="login.php">Back to sign in</a></p>
+    <p style="margin-top:0.8rem;"><a href="<?= $isLoggedIn ? 'index.php' : 'login.php' ?>"><?= $isLoggedIn ? 'Back to dashboard' : 'Back to sign in' ?></a></p>
   </div>
 </body>
 </html>

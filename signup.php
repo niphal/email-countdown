@@ -65,6 +65,9 @@ $csrf = auth_csrf_token();
     button:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,66,37,.2); }
     .err { color:var(--bad); font-size:.88rem; margin-bottom:.75rem; }
     .hint { font-size:.82rem; color:var(--muted); margin-top:.8rem; }
+    .menu { display:flex; gap:.45rem; flex-wrap:wrap; margin:0 0 1rem; }
+    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.34rem .68rem; font-size:.78rem; font-weight:600; }
+    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
     a { color:var(--accent); text-decoration:none; font-weight:600; }
     a:hover { text-decoration:underline; }
     @media (max-width: 620px) { .grid { grid-template-columns:1fr; } .card { padding:1.2rem; } h1 { font-size:1.25rem; } }
@@ -72,6 +75,11 @@ $csrf = auth_csrf_token();
 </head>
 <body>
   <div class="card">
+    <div class="menu">
+      <a href="login.php">Sign in</a>
+      <a href="signup.php" class="active">Sign up</a>
+      <a href="forgot_password.php">Forgot password</a>
+    </div>
     <h1>Create account</h1>
     <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
     <form method="post" action="signup.php">
