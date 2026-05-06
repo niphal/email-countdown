@@ -72,7 +72,7 @@ if ($cu !== null) {
           <option value="paused">paused</option>
           <option value="canceled">canceled</option>
         </select>
-        <button id="save-plan">Save billing</button>
+        <button id="save-plan" type="button">Save billing</button>
       </div>
     </div>
 
@@ -98,7 +98,7 @@ if ($cu !== null) {
         </select>
       </div>
       <div class="row" style="margin-top:.8rem">
-        <button id="add-member">Add member</button>
+        <button id="add-member" type="button">Add member</button>
         <span id="msg" class="muted"></span>
       </div>
     </div>
@@ -111,10 +111,19 @@ if ($cu !== null) {
     const msgEl = document.getElementById('msg');
 
     function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function setMsg(text) { msgEl.textContent = text || ''; }
+    async function parseJsonSafe(resp) {
+      const txt = await resp.text();
+      try { return JSON.parse(txt); } catch { return { error: txt ? txt.slice(0, 180) : 'Unexpected response' }; }
+    }
 
     async function loadBilling() {
       const r = await fetch(BILLING_API, { credentials: 'same-origin' });
-      const j = await r.json();
+      const j = await parseJsonSafe(r);
+      if (!r.ok) {
+        setMsg(j.error || 'Could not load billing');
+        return;
+      }
       const ent = j.entitlements || {};
       const plans = j.plans || {};
       const billing = document.getElementById('billing');
@@ -134,10 +143,12 @@ if ($cu !== null) {
     async function loadMembers() {
       const r = await fetch(MEMBERS_API, { credentials: 'same-origin' });
       if (!r.ok) {
+        const j = await parseJsonSafe(r);
+        setMsg(j.error || 'No access to members API');
         membersEl.innerHTML = '<tr><td colspan="5" class="muted">No access.</td></tr>';
         return;
       }
-      const j = await r.json();
+      const j = await parseJsonSafe(r);
       const rows = j.members || [];
       if (!rows.length) {
         membersEl.innerHTML = '<tr><td colspan="5" class="muted">No members.</td></tr>';
@@ -153,7 +164,7 @@ if ($cu !== null) {
             </select>
           </td>
           <td><input type="checkbox" data-active-id="${Number(m.id)}" ${Number(m.is_active) ? 'checked' : ''}></td>
-          <td><button class="secondary" data-save-id="${Number(m.id)}">Save</button></td>
+          <td><button type="button" class="secondary" data-save-id="${Number(m.id)}">Save</button></td>
         </tr>
       `).join('');
       document.querySelectorAll('[data-save-id]').forEach(btn => {
@@ -161,10 +172,14 @@ if ($cu !== null) {
           const id = Number(btn.getAttribute('data-save-id'));
           const role = document.querySelector(`[data-role-id="${id}"]`).value;
           const isActive = document.querySelector(`[data-active-id="${id}"]`).checked;
-          const rr = await fetch(MEMBERS_API, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: id, role, is_active: isActive }) });
-          const jj = await rr.json();
-          msgEl.textContent = rr.ok ? 'Member updated' : (jj.error || 'Update failed');
-          loadMembers();
+          try {
+            const rr = await fetch(MEMBERS_API, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: id, role, is_active: isActive }) });
+            const jj = await parseJsonSafe(rr);
+            setMsg(rr.ok ? 'Member updated' : (jj.error || 'Update failed'));
+            if (rr.ok) loadMembers();
+          } catch (e) {
+            setMsg('Network error while updating member');
+          }
         });
       });
     }
@@ -176,14 +191,22 @@ if ($cu !== null) {
         password: document.getElementById('m_password').value,
         role: document.getElementById('m_role').value,
       };
-      const r = await fetch(MEMBERS_API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const j = await r.json();
-      msgEl.textContent = r.ok ? 'Member added' : (j.error || 'Could not add member');
-      if (r.ok) {
-        document.getElementById('m_email').value = '';
-        document.getElementById('m_name').value = '';
-        document.getElementById('m_password').value = '';
-        loadMembers();
+      if (!payload.email) {
+        setMsg('Valid email required');
+        return;
+      }
+      try {
+        const r = await fetch(MEMBERS_API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const j = await parseJsonSafe(r);
+        setMsg(r.ok ? 'Member added' : (j.error || 'Could not add member'));
+        if (r.ok) {
+          document.getElementById('m_email').value = '';
+          document.getElementById('m_name').value = '';
+          document.getElementById('m_password').value = '';
+          loadMembers();
+        }
+      } catch (e) {
+        setMsg('Network error while adding member');
       }
     });
 
@@ -192,10 +215,14 @@ if ($cu !== null) {
         plan_key: document.getElementById('plan_key').value,
         status: document.getElementById('plan_status').value,
       };
-      const r = await fetch(BILLING_API, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const j = await r.json();
-      msgEl.textContent = r.ok ? 'Billing updated' : (j.error || 'Billing update failed');
-      loadBilling();
+      try {
+        const r = await fetch(BILLING_API, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const j = await parseJsonSafe(r);
+        setMsg(r.ok ? 'Billing updated' : (j.error || 'Billing update failed'));
+        if (r.ok) loadBilling();
+      } catch (e) {
+        setMsg('Network error while updating billing');
+      }
     });
 
     loadBilling();
