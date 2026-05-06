@@ -75,6 +75,7 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       <button type="submit">Continue</button>
     </form>
     <p class="hint" style="margin-top:0.6rem;"><a href="forgot_password.php">Forgot password?</a></p>
+    <p class="hint" style="margin-top:0.3rem;"><a href="signup.php">Need an account? Sign up</a></p>
     <p class="hint">Default installs use the seeded owner mailbox above (password from install). Invite additional workspace members via the DB or a future admin UI.</p>
   </div>
 </body>

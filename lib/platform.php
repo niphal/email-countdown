@@ -7,6 +7,34 @@ function platform_seed_owner_email(): string
     return 'owner@local.invalid';
 }
 
+function platform_slugify_workspace(string $name): string
+{
+    $slug = strtolower(trim($name));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug ?? '');
+    $slug = trim((string) $slug, '-');
+    if ($slug === '') {
+        $slug = 'workspace';
+    }
+
+    return substr($slug, 0, 48);
+}
+
+function platform_unique_workspace_slug(PDO $pdo, string $base): string
+{
+    $base = platform_slugify_workspace($base);
+    $slug = $base;
+    $i = 2;
+    while (true) {
+        $stmt = $pdo->prepare('SELECT 1 FROM workspaces WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        if ($stmt->fetchColumn() === false) {
+            return $slug;
+        }
+        $slug = substr($base, 0, 44) . '-' . $i;
+        $i++;
+    }
+}
+
 /**
  * Workspace + users + audit schema; timers.workspace_id.
  */
@@ -169,4 +197,75 @@ function platform_audit_log(
         $ip,
         time(),
     ]);
+}
+
+/**
+ * @return array{user_id:int,workspace_id:int,role:string,name:string}
+ */
+function platform_create_workspace_owner(PDO $pdo, string $workspaceName, string $email, string $password, string $displayName = ''): array
+{
+    $workspaceName = trim($workspaceName);
+    $email = trim($email);
+    $displayName = trim($displayName);
+    if ($workspaceName === '') {
+        throw new RuntimeException('Workspace name is required');
+    }
+    if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        throw new RuntimeException('Valid email is required');
+    }
+    if (strlen($password) < 8) {
+        throw new RuntimeException('Password must be at least 8 characters');
+    }
+
+    platform_schema_migrate($pdo);
+
+    $check = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1');
+    $check->execute([$email]);
+    if ($check->fetchColumn() !== false) {
+        throw new RuntimeException('An account with this email already exists');
+    }
+
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    if ($hash === false) {
+        throw new RuntimeException('Could not hash password');
+    }
+
+    $now = time();
+    $slug = platform_unique_workspace_slug($pdo, $workspaceName);
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('INSERT INTO workspaces (name, slug, created_at) VALUES (?, ?, ?)')
+            ->execute([$workspaceName, $slug, $now]);
+        $workspaceId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, created_at) VALUES (?, ?, ?, 1, ?)')
+            ->execute([$email, $displayName !== '' ? $displayName : $email, $hash, $now]);
+        $userId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, "owner", ?)')
+            ->execute([$workspaceId, $userId, $now]);
+
+        $pdo->prepare('INSERT OR IGNORE INTO workspace_billing (workspace_id, plan_key, status, stripe_customer_id, current_period_end, created_at, updated_at) VALUES (?, "free", "active", "", 0, ?, ?)')
+            ->execute([$workspaceId, $now, $now]);
+
+        platform_audit_log($pdo, $workspaceId, $userId, 'workspace.created', 'workspace', (string) $workspaceId, [
+            'workspace_name' => $workspaceName,
+            'email' => $email,
+        ]);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+
+    return [
+        'user_id' => $userId,
+        'workspace_id' => $workspaceId,
+        'role' => 'owner',
+        'name' => $displayName !== '' ? $displayName : $email,
+    ];
 }

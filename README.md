@@ -54,6 +54,7 @@ Point the document root (or a URL path) at this project, then open `install.php`
 - Login form includes a **CSRF** token. After **5 failed** password attempts, login is blocked for **60 seconds**.
 - **Forgot password token flow**: request at `forgot_password.php`, consume at `reset_password.php` (1 hour expiry, one-time use).
 - By default, reset links are appended to `data/reset-links.log` on the server (and `mail()` is attempted if configured).
+- **Self-serve signup**: `signup.php` creates a new workspace plus owner account, then signs the user in.
 - Use **Log out** (or `logout.php`) on shared machines.
 
 ## Usage
@@ -101,6 +102,7 @@ Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }
 install.php           # Web installer (run once)
 auth.php              # Session login helpers
 login.php / logout.php
+signup.php            # Self-serve signup (creates workspace + owner)
 forgot_password.php   # Request password reset token
 reset_password.php    # Consume token and set new password
 api/timers.php        # JSON CRUD (auth + workspace scoped)
