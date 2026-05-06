@@ -72,7 +72,7 @@ function auth_is_logged_in(): bool
  */
 function auth_current_user(): ?array
 {
-    if (!auth_is_logged_in()) {
+    if (empty($_SESSION[AUTH_SESSION_KEY])) {
         return null;
     }
     $id = (int) ($_SESSION[AUTH_SESSION_USER_ID] ?? 0);
