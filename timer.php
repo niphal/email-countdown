@@ -5,8 +5,8 @@ declare(strict_types=1);
 /** ~10 one-second frames: still animates in email clients without 5s+ encode cost. */
 const TIMER_ANIMATION_FRAMES = 10;
 const TIMER_FRAME_DELAY_CS = 100;
-/** More colors keep rounded cards readable after GIF quantization. */
-const TIMER_GIF_COLORS = 96;
+/** More colors keep rounded cards and smooth rings readable after GIF quantization. */
+const TIMER_GIF_COLORS = 160;
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/timer_fonts.php';
