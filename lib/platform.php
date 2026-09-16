@@ -58,6 +58,26 @@ function platform_schema_migrate(PDO $pdo): void
         created_at INTEGER NOT NULL
     )');
 
+    $ucols = [];
+    foreach ($pdo->query('PRAGMA table_info(users)') as $row) {
+        $ucols[(string) $row['name']] = true;
+    }
+    if (!isset($ucols['email_verified_at'])) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN email_verified_at INTEGER NOT NULL DEFAULT 0');
+        $pdo->exec('UPDATE users SET email_verified_at = created_at WHERE email_verified_at = 0');
+    }
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS email_verifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        expires_at INTEGER NOT NULL,
+        used_at INTEGER,
+        requested_ip TEXT NOT NULL DEFAULT "",
+        created_at INTEGER NOT NULL
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_email_verifs_user_created ON email_verifications(user_id, created_at DESC)');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS workspace_members (
         workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -154,12 +174,12 @@ function platform_seed_owner_user_from_secrets(PDO $pdo): void
     $uid = $stmt->fetchColumn();
     $now = time();
     if ($uid === false) {
-        $ins = $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, created_at) VALUES (?, ?, ?, 1, ?)');
-        $ins->execute([$email, 'Owner', $hash, $now]);
+        $ins = $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, email_verified_at, created_at) VALUES (?, ?, ?, 1, ?, ?)');
+        $ins->execute([$email, 'Owner', $hash, $now, $now]);
         $uid = (int) $pdo->lastInsertId();
     } else {
         $uid = (int) $uid;
-        $pdo->prepare('UPDATE users SET password_hash = ?, is_active = 1 WHERE id = ?')->execute([$hash, $uid]);
+        $pdo->prepare('UPDATE users SET password_hash = ?, is_active = 1, email_verified_at = CASE WHEN COALESCE(email_verified_at,0) <= 0 THEN ? ELSE email_verified_at END WHERE id = ?')->execute([$hash, $now, $uid]);
     }
 
     $mem = $pdo->prepare('SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?');
@@ -239,7 +259,7 @@ function platform_create_workspace_owner(PDO $pdo, string $workspaceName, string
             ->execute([$workspaceName, $slug, $now]);
         $workspaceId = (int) $pdo->lastInsertId();
 
-        $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, created_at) VALUES (?, ?, ?, 1, ?)')
+        $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, email_verified_at, created_at) VALUES (?, ?, ?, 1, 0, ?)')
             ->execute([$email, $displayName !== '' ? $displayName : $email, $hash, $now]);
         $userId = (int) $pdo->lastInsertId();
 

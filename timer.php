@@ -2,14 +2,18 @@
 
 declare(strict_types=1);
 
-const TIMER_ANIMATION_FRAMES = 20;
+/** ~15 one-second frames keeps Gmail/mobile GIF weight reasonable while still animating. */
+const TIMER_ANIMATION_FRAMES = 15;
 const TIMER_FRAME_DELAY_CS = 100;
+/** Palette size for GIF frames (lower = smaller file, still readable for countdown digits). */
+const TIMER_GIF_COLORS = 128;
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/lib/timer_layouts.php';
 
 if (!function_exists('imagecreatetruecolor')) {
+    observability_log('timer.render.gd_missing', 'error');
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'PHP GD is not enabled. In php.ini set extension=gd, then restart PHP or your web server.';
@@ -18,6 +22,7 @@ if (!function_exists('imagecreatetruecolor')) {
 
 $id = $_GET['id'] ?? '';
 if (!preg_match('/^[a-f0-9]{32}$/', $id)) {
+    observability_log('timer.render.bad_id', 'warning');
     http_response_code(400);
     header('Content-Type: text/plain');
     echo 'Bad id';
@@ -32,6 +37,7 @@ if ($overrideEnd !== null && $overrideEnd <= 0) {
 if ($overrideEnd !== null) {
     $key = app_timer_signing_key();
     if ($key !== '' && !app_timer_has_valid_signature($id, $_GET['sig'] ?? null)) {
+        observability_log('timer.render.invalid_dynamic_signature', 'warning', ['timer_id' => $id]);
         http_response_code(403);
         header('Content-Type: text/plain; charset=utf-8');
         echo 'Dynamic end override requires a valid sig parameter.';
@@ -43,6 +49,7 @@ $stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color,
 $stmt->execute([$id]);
 $row = $stmt->fetch();
 if (!$row) {
+    observability_log('timer.render.not_found', 'warning', ['timer_id' => $id]);
     http_response_code(404);
     header('Content-Type: text/plain');
     echo 'Not found';
@@ -69,6 +76,7 @@ if ($fontSizeMain > 72) {
 }
 
 if (!timer_gd_has_freetype()) {
+    observability_log('timer.render.freetype_missing', 'error', ['timer_id' => $id]);
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'PHP GD is missing FreeType support, so TrueType fonts cannot render. Install a PHP build where GD is linked with FreeType (often shown as "FreeType Support => enabled" in phpinfo).';
@@ -77,6 +85,7 @@ if (!timer_gd_has_freetype()) {
 
 $fontPath = timer_ensure_ttf_path($fontKey);
 if ($fontPath === null) {
+    observability_log('timer.render.font_unavailable', 'error', ['timer_id' => $id, 'font_key' => $fontKey]);
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Timer fonts could not be downloaded. Ensure the data/fonts directory is writable and that PHP can make outbound HTTPS requests (curl extension or allow_url_fopen). Fonts are fetched once from Google Fonts open-source repositories.';
@@ -84,16 +93,22 @@ if ($fontPath === null) {
 }
 
 $format = strtolower((string) ($_GET['format'] ?? 'gif'));
+$renderStart = microtime(true);
 $t0 = time();
+$deadlineLabel = app_format_deadline_label($endsAt);
 
-header('Cache-Control: private, max-age=60');
+// Hint freshness to intermediate caches. Gmail's image proxy may still serve a stale copy on re-open.
+header('Cache-Control: public, max-age=30, s-maxage=30');
+header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 30) . ' GMT');
+header('Pragma: no-cache');
 
 if ($format === 'png') {
     header('Content-Type: image/png');
     $remaining = max(0, $endsAt - $t0);
-    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt);
+    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, false);
     imagepng($im);
     imagedestroy($im);
+    timer_observe_render_success($id, 'png', $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
     exit;
 }
 
@@ -104,13 +119,15 @@ $gifBinary = null;
 try {
     for ($k = 0; $k < TIMER_ANIMATION_FRAMES; $k++) {
         $remaining = max(0, $endsAt - ($t0 + $k));
-        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt);
+        // First frame is informative for clients that freeze GIF animation (Outlook desktop).
+        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, $k === 0);
     }
     $durations = array_fill(0, TIMER_ANIMATION_FRAMES, TIMER_FRAME_DELAY_CS);
     $creator = new GifCreator();
     $creator->setOmitNetscapeLoop(true);
     $gifBinary = $creator->create($frames, $durations, 0);
 } catch (Throwable $e) {
+    observability_log('timer.render.failed', 'error', ['timer_id' => $id, 'error' => $e->getMessage()]);
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Could not build animated timer.';
@@ -125,6 +142,7 @@ try {
 
 header('Content-Type: image/gif');
 echo $gifBinary;
+timer_observe_render_success($id, 'gif', $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
 
 /**
  * @return array{0:int,1:int,2:int}
@@ -140,6 +158,31 @@ function parse_hex(string $hex): array
         hexdec(substr($hex, 2, 2)),
         hexdec(substr($hex, 4, 2)),
     ];
+}
+
+function timer_observe_render_success(string $id, string $format, string $layoutKey, int $durationMs): void
+{
+    $slowThreshold = 750;
+    if ($durationMs >= $slowThreshold) {
+        observability_log('timer.render.slow', 'warning', [
+            'timer_id' => $id,
+            'format' => $format,
+            'layout' => $layoutKey,
+            'duration_ms' => $durationMs,
+        ]);
+
+        return;
+    }
+    $sampleRate = observability_config_float('timer_render_success_sample_rate', 0.02, 0.0, 1.0);
+    if (!observability_should_sample($sampleRate)) {
+        return;
+    }
+    observability_log('timer.render.success_sampled', 'info', [
+        'timer_id' => $id,
+        'format' => $format,
+        'layout' => $layoutKey,
+        'duration_ms' => $durationMs,
+    ]);
 }
 
 /**
@@ -159,7 +202,9 @@ function render_timer_frame(
     int $fontSizeMain,
     string $layoutKey,
     int $createdAt,
-    int $storedEndsAt
+    int $storedEndsAt,
+    string $deadlineLabel = '',
+    bool $firstFrame = false
 ): \GdImage
 {
     $im = imagecreatetruecolor($w, $h);
@@ -173,14 +218,25 @@ function render_timer_frame(
     [$days, $hh, $mm, $ss] = timer_split_remaining($remaining);
     $mainLine = sprintf('%02d:%02d:%02d', $hh, $mm, $ss);
     $daysLine = sprintf('%02d', $days);
-    $sub = $remaining <= 0 ? 'Offer ended' : ($label !== '' ? $label : 'Time remaining');
+    $ended = $remaining <= 0;
+    if ($ended) {
+        $sub = 'Offer ended';
+    } elseif ($firstFrame && $deadlineLabel !== '') {
+        // Outlook desktop freezes on frame 1 — keep deadline readable without animation.
+        $sub = $label !== '' ? ($label . ' · ' . $deadlineLabel) : $deadlineLabel;
+    } else {
+        $sub = $label !== '' ? $label : ($deadlineLabel !== '' ? $deadlineLabel : 'Time remaining');
+    }
     $progress = timer_progress_ratio($remaining, $createdAt, $storedEndsAt);
 
     $fontSizeMain = (int) max(10, min(72, $fontSizeMain, (int) ($h * 0.52)));
     $fontSizeSub = (int) max(8, min(40, (int) round($fontSizeMain * 0.45)));
     $fontSizeUnit = (int) max(8, (int) round($fontSizeSub * 0.6));
 
-    if (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'segmented_pills') {
+    if ($ended && is_readable($fontPath) && function_exists('imagettfbbox')) {
+        draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 0.85), 'OFFER ENDED', $colAc, $w / 2, $h * 0.42);
+        draw_ttf_centered($im, $fontPath, $fontSizeSub, $deadlineLabel !== '' ? $deadlineLabel : 'This offer has expired', $colFg, $w / 2, $h * 0.72);
+    } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'segmented_pills') {
         timer_draw_segmented_pills($im, $fontPath, $colPanel, $colAc, $colMuted, $colFg, $days, $hh, $mm, $ss, $fontSizeMain, $fontSizeUnit, $sub);
     } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'split_emphasis') {
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 1.1), $mainLine, $colAc, $w / 2, $h * 0.55);
@@ -201,12 +257,13 @@ function render_timer_frame(
         draw_ttf_centered($im, $fontPath, $fontSizeSub, 'D ' . $daysLine . '   ' . $sub, $colFg, $w * 0.62, $h * 0.78);
     } else {
         $y1 = (int) ($h / 2 - imagefontheight(5));
-        imagestring_centered($im, 5, sprintf('%02d:%02d:%02d', $hh, $mm, $ss), $colAc, $y1);
+        imagestring_centered($im, 5, $ended ? 'ENDED' : sprintf('%02d:%02d:%02d', $hh, $mm, $ss), $colAc, $y1);
         $y2 = (int) ($h / 2 + 8);
         imagestring_centered($im, 3, $sub, $colFg, $y2);
     }
 
-    imagetruecolortopalette($im, true, 255);
+    // Fewer colors = smaller GIF payloads for Gmail mobile / proxy.
+    imagetruecolortopalette($im, false, TIMER_GIF_COLORS);
 
     return $im;
 }

@@ -49,6 +49,7 @@ try {
         $uStmt->execute([$email]);
         $uid = $uStmt->fetchColumn();
         $now = time();
+        $needsVerificationEmail = false;
         if ($uid === false) {
             if (strlen($password) < 8) {
                 $pdo->rollBack();
@@ -59,9 +60,10 @@ try {
                 $pdo->rollBack();
                 json_response(['error' => 'Could not hash password'], 500);
             }
-            $ins = $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, created_at) VALUES (?, ?, ?, 1, ?)');
+            $ins = $pdo->prepare('INSERT INTO users (email, display_name, password_hash, is_active, email_verified_at, created_at) VALUES (?, ?, ?, 1, 0, ?)');
             $ins->execute([$email, $name !== '' ? $name : $email, $hash, $now]);
             $uid = (int) $pdo->lastInsertId();
+            $needsVerificationEmail = true;
         } else {
             $uid = (int) $uid;
             if ($name !== '') {
@@ -100,6 +102,12 @@ try {
 
         platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, $action, 'member', (string) $uid, ['email' => $email, 'role' => $role]);
         $pdo->commit();
+        if ($needsVerificationEmail) {
+            $sent = auth_send_email_verification($pdo, $uid);
+            if (!$sent['ok']) {
+                observability_log('admin.member.verification_email_failed', 'error', ['user_id' => $uid, 'error' => $sent['error']]);
+            }
+        }
         json_response(['ok' => true, 'user_id' => $uid]);
     }
 

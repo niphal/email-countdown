@@ -47,8 +47,8 @@ try {
         $fg = sanitize_hex((string) ($body['text_color'] ?? '#eaeaea'), '#eaeaea');
         $ac = sanitize_hex((string) ($body['accent_color'] ?? '#e94560'), '#e94560');
         $label = mb_substr((string) ($body['label'] ?? ''), 0, 120);
-        $w = clamp_int((int) ($body['width'] ?? 560), 200, 900);
-        $h = clamp_int((int) ($body['height'] ?? 140), 80, 400);
+        $w = clamp_int((int) ($body['width'] ?? 480), 200, 600);
+        $h = clamp_int((int) ($body['height'] ?? 120), 80, 300);
         $fontKey = timer_normalize_font_key((string) ($body['font_key'] ?? 'noto_sans_bold'));
         $fontSizeMain = clamp_int((int) ($body['font_size_main'] ?? 32), 14, 72);
         $layoutKey = timer_normalize_layout_key((string) ($body['layout_key'] ?? 'segmented_pills'));
@@ -78,8 +78,8 @@ try {
         $fg = sanitize_hex((string) ($body['text_color'] ?? '#eaeaea'), '#eaeaea');
         $ac = sanitize_hex((string) ($body['accent_color'] ?? '#e94560'), '#e94560');
         $label = mb_substr((string) ($body['label'] ?? ''), 0, 120);
-        $w = clamp_int((int) ($body['width'] ?? 560), 200, 900);
-        $h = clamp_int((int) ($body['height'] ?? 140), 80, 400);
+        $w = clamp_int((int) ($body['width'] ?? 480), 200, 600);
+        $h = clamp_int((int) ($body['height'] ?? 120), 80, 300);
         $fontKey = timer_normalize_font_key((string) ($body['font_key'] ?? 'noto_sans_bold'));
         $fontSizeMain = clamp_int((int) ($body['font_size_main'] ?? 32), 14, 72);
         $layoutKey = timer_normalize_layout_key((string) ($body['layout_key'] ?? 'segmented_pills'));

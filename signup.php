@@ -32,8 +32,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } else {
             try {
                 $created = platform_create_workspace_owner(db(), $workspaceName, $email, $pw, $displayName);
-                auth_login_success((int) $created['user_id'], (int) $created['workspace_id'], (string) $created['role'], (string) $created['name']);
-                header('Location: index.php', true, 302);
+                auth_send_email_verification(db(), (int) $created['user_id']);
+                $_SESSION['flash_verify_email'] = $email;
+                header('Location: verify_notice.php', true, 302);
                 exit;
             } catch (Throwable $e) {
                 $error = $e->getMessage();

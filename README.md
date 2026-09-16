@@ -1,10 +1,10 @@
 # Email countdown
 
-Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.braze.com/)). Inboxes do not run JavaScript, so timers are served as **images**: an **animated GIF** by default (about 20 one-second frames from load time) or a **static PNG** if you prefer.
+Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.braze.com/), Gmail-friendly GIF embeds). Inboxes do not run JavaScript, so timers are served as **images**: an **animated GIF** by default (~15 one-second frames from load time) or a **static PNG** if you prefer.
 
 ## Requirements
 
-- PHP **8.0+** with extensions: **GD**, **PDO**, **pdo_sqlite**, **mbstring**
+- PHP **8.0+** with extensions: **GD**, **PDO**, **pdo_sqlite**, **mbstring**, **openssl** (recommended for SMTP STARTTLS)
 - A web server (Apache, nginx + PHP-FPM, etc.)
 - Write access to `data/` so SQLite can create `data/app.db`
 
@@ -48,28 +48,37 @@ Point the document root (or a URL path) at this project, then open `install.php`
 - Optional **`public_base_url`** in **`data/secrets.php`** (HTTPS, no trailing slash): used as the origin for **absolute** `img src` URLs in copied email HTML. If unset, the app uses the current request’s `Host` (set it when the admin UI is only on an internal URL).
 - Installer/CLI setup also creates **`timer_signing_key`** in `data/secrets.php` for signed dynamic timer URLs.
 - Sign-in uses **`data/secrets.php`** to bootstrap a **seeded owner** in SQLite (`users` + `workspace_members`) on first successful login. Use the seeded email **`owner@local.invalid`** (shown on the login form) plus the installer password unless you added other users in the DB. Production teams can add more users directly in the database for now; roles are **`owner`**, **`admin`**, **`editor`**, **`viewer`** (viewers can list timers but cannot create, update, or delete).
-- **`index.php`** (dashboard) and **`api/*.php`** admin endpoints require a signed-in session with valid user + workspace context.
+- **`index.php`** (dashboard) and **`api/*.php`** admin endpoints require a signed-in session with valid user + workspace context. Every **non-invite signup** route now requires **`email_verified_at`** — existing databases migrate every user row to verified once, seeded installer owners are stamped verified automatically, brand-new workspaces created through **`signup.php`** must click the emailed link (`verify_email.php?token=`).
 - **`timer.php`** stays **public** (no cookie): email clients must load countdown images without logging in.
 - Sessions use **HttpOnly** cookies, **SameSite=Lax**, and **Secure** when the request is HTTPS.
 - Login form includes a **CSRF** token. After **5 failed** password attempts, login is blocked for **60 seconds**.
-- **Forgot password token flow**: request at `forgot_password.php`, consume at `reset_password.php` (1 hour expiry, one-time use).
-- By default, reset links are appended to `data/reset-links.log` on the server (and `mail()` is attempted if configured).
-- **Self-serve signup**: `signup.php` creates a new workspace plus owner account, then signs the user in.
+- **Forgot password token flow**: request at `forgot_password.php`, consume at `reset_password.php` (1 hour expiry, one-time use). Successful resets also confirm the inbox and mark `email_verified_at` when it was unset.
+- **Outbound email**: set `mail_transport` to **`smtp`** in **`data/secrets.php`** (`mail_from_email`, `smtp_host`, `smtp_port`, `smtp_encryption`, `smtp_username`, `smtp_password`; see **`data/secrets.example.php`**). Use **`log`** (default for local installs) to write messages under **`data/mail-out.log`**. Verification + reset links remain duplicated to **`data/reset-links.log`** with delivery status metadata for troubleshooting.
+- **Self-serve signup**: `signup.php` creates a new workspace plus owner account, queues a verification email, and redirects to **`verify_notice.php`**. Signing in blocks until **`verify_email.php?token=`** confirms the inbox (use **`resend_verification.php`** if needed).
+- **Admin-invited accounts** (`api/admin_members.php` → new users) mirror the verification requirement and receive the same verification email payload.
 - Use **Log out** (or `logout.php`) on shared machines.
 
 ## Usage
 
 1. Open the web UI and sign in (`index.php` redirects to `login.php` when needed).
-2. Create a timer (end time, colors, optional label).
-3. Use **Copy HTML** and paste into your ESP’s **custom HTML** (Braze HTML editor, etc.).
-4. Replace the `href="#"` link in the snippet with your real landing URL.
-5. Copied HTML uses a **full absolute** `img src` (from your public site or `public_base_url` in `data/secrets.php`). Use **HTTPS** in production.
+2. Create a timer (end time, colors, optional label). Prefer **480×120** (or ≤560px wide) for Gmail mobile.
+3. Ensure **`public_base_url`** in `data/secrets.php` is an absolute **`https://`** origin (required for Gmail image loading).
+4. Use **Copy Gmail HTML** and paste into your ESP’s custom HTML. Replace `https://example.com/cta` with your landing URL.
+5. Optional: **Copy PNG URL** for a static fallback; **Copy Dynamic HTML** for signed per-recipient `&end=` overrides.
+
+### Gmail behavior (important)
+
+- Gmail **does animate** countdown GIFs on web/iOS/Android.
+- Google’s **image proxy caches** the GIF: the **first open** is accurate; **re-opens** of the same message may show a slightly stale timer. That is expected industry-wide.
+- Optional `&v=campaign_id` on the image URL isolates caches between sends (ignored by the renderer).
+- Outlook desktop often shows only the **first frame** — that frame includes the UTC deadline text; expired timers show **OFFER ENDED**.
+- Default animation is **~15 one-second frames**, play-once, with a leaner color palette for smaller mobile payloads.
 
 ### Timer image URL
 
 - **Default (animated GIF):**  
   `https://YOUR_PUBLIC_ORIGIN/PATH/timer.php?id=TIMER_ID` (origin from the dashboard request or `public_base_url`)  
-  Steps the countdown about once per second for up to 20 seconds after each load (client behavior may vary).
+  Steps the countdown about once per second for up to 15 seconds after each load (client behavior may vary).
 
 - **Static PNG:**  
   Append `&format=png` for a single frame at request time.
@@ -82,6 +91,9 @@ Point the document root (or a URL path) at this project, then open `install.php`
   Example:
   `https://YOUR_PUBLIC_ORIGIN/PATH/timer.php?id=TIMER_ID&end={{event_properties.end_ts}}&sig=...`
 
+- **Campaign cache isolation (optional):**  
+  Append `&v=YOUR_CAMPAIGN_ID` so different sends do not share the same proxy cache key.
+
 ## API (JSON)
 
 | Method | URL | Purpose |
@@ -93,8 +105,17 @@ Point the document root (or a URL path) at this project, then open `install.php`
 | `GET` | `api/audit.php` | Workspace audit log (`owner` / `admin` / `editor`; optional `limit` ≤ 100) |
 | `GET` | `api/billing.php` | Workspace plan + usage entitlements (timer caps, premium features) |
 | `GET/POST/PATCH` | `api/admin_members.php` | Member/role admin (`owner` / `admin`) |
+| `GET` | `api/observability.php` | Health checks + recent structured events (`owner` / `admin`) |
 
 Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }`. Missing write permission returns **403**.
+
+## Observability
+
+- Runtime events are written as JSON lines to **`data/events.jsonl`** with timestamp, level, event name, request id, request path, user/workspace ids when available, and redacted fields.
+- The **Admin** page includes an **Observability** panel with health checks and recent events. It uses **`api/observability.php`** and is restricted to `owner` / `admin`.
+- Current event coverage includes login success/failure/lockouts, email verification/reset send outcomes, SMTP/log mail delivery, member verification-email failures, timer render failures, slow timer renders, and sampled render success timings (`timer_render_success_sample_rate`, default `0.02`).
+- Health checks cover PHP version, writable `data/`, SQLite DB presence, event log writability, GD, OpenSSL, and mail transport configuration.
+- Runtime logs (`data/*.log`, `data/*.jsonl`) are gitignored.
 
 ## Project layout
 
@@ -102,13 +123,19 @@ Unauthenticated API calls receive **401** with JSON `{ "error": "Unauthorized" }
 install.php           # Web installer (run once)
 auth.php              # Session login helpers
 login.php / logout.php
-signup.php            # Self-serve signup (creates workspace + owner)
+signup.php            # Self-serve signup (creates workspace + owner + verification email)
+verify_notice.php     # Post-signup “check your email” screen
+verify_email.php      # Consumes signup verification tokens
+resend_verification.php # Sends another verification email (rate limited)
 forgot_password.php   # Request password reset token
 reset_password.php    # Consume token and set new password
 api/timers.php        # JSON CRUD (auth + workspace scoped)
 api/audit.php         # Workspace audit entries (auth)
 api/billing.php       # Workspace billing + entitlements (auth)
 api/admin_members.php # Member invite/update role + active status (admin)
+api/observability.php # Admin health checks + recent structured runtime events
+lib/mail_transport.php# SMTP/log delivery helper for verification & reset flows
+lib/observability.php # JSONL event logging + health helpers
 lib/platform.php      # workspaces / users migrations + audit helpers
 lib/monetization.php  # plan catalog + feature gating helpers
 config.php            # SQLite, JSON helpers, root-relative timer URL helper

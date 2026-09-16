@@ -24,6 +24,13 @@ if ($cu !== null) {
 $timerPreviewPrefix = app_timer_url_prefix();
 $timerEmbedPrefix = app_timer_embed_src_prefix();
 $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
+$embedIsHttpsAbsolute = app_embed_is_https_absolute();
+$embedBlockedReason = '';
+if ($embedNeedsPublicBase) {
+    $embedBlockedReason = 'root-relative';
+} elseif (!$embedIsHttpsAbsolute) {
+    $embedBlockedReason = 'not-https';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -184,9 +191,11 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       </div>
       <a class="logout" href="logout.php">Log out</a>
     </div>
-    <p class="lede">Create timers that render as animated GIFs (about 20 one-second frames from load time)—safe for Braze and other ESPs (no JavaScript in email). Add <code>?format=png</code> to the image URL for a single static PNG instead. Paste the HTML into the Braze email editor.</p>
-    <?php if ($embedNeedsPublicBase): ?>
-    <p class="note" style="margin:-1rem 0 1.5rem;padding:0.75rem 1rem;background:rgba(248,113,113,0.12);border:1px solid #5c2a35;border-radius:8px;">Copied embed URLs are still <strong>root-relative</strong> (no host was available). Add <code>'public_base_url' =&gt; 'https://your-public-site'</code> to <code>data/secrets.php</code> (no trailing slash), or open the dashboard on your public <strong>https</strong> URL, then copy again.</p>
+    <p class="lede">Create timers that render as animated GIFs (~15 one-second frames from load time)—built for Gmail, Braze, and other ESPs (no JavaScript in email). Use <code>?format=png</code> for a static fallback frame. Paste the Gmail-safe HTML into your ESP editor.</p>
+    <?php if ($embedBlockedReason === 'root-relative'): ?>
+    <p class="note" style="margin:-1rem 0 1.5rem;padding:0.75rem 1rem;background:rgba(185,28,28,0.08);border:1px solid #efcaca;border-radius:8px;"><strong>Gmail will not load these images yet.</strong> Copied embed URLs are still <strong>root-relative</strong> (no host). Add <code>'public_base_url' =&gt; 'https://your-public-site'</code> to <code>data/secrets.php</code> (no trailing slash), or open the dashboard on your public <strong>https</strong> URL, then copy again.</p>
+    <?php elseif ($embedBlockedReason === 'not-https'): ?>
+    <p class="note" style="margin:-1rem 0 1.5rem;padding:0.75rem 1rem;background:rgba(185,28,28,0.08);border:1px solid #efcaca;border-radius:8px;"><strong>Gmail requires HTTPS image URLs.</strong> Set <code>'public_base_url' =&gt; 'https://…'</code> in <code>data/secrets.php</code> (no trailing slash). HTTP embeds are blocked from Copy until that is fixed.</p>
     <?php endif; ?>
 
     <div class="panel">
@@ -215,11 +224,11 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         </div>
         <div>
           <label for="width">Width (px)</label>
-          <input type="number" id="width" value="560" min="200" max="900" step="10">
+          <input type="number" id="width" value="480" min="200" max="600" step="10">
         </div>
         <div>
           <label for="height">Height (px)</label>
-          <input type="number" id="height" value="140" min="80" max="400" step="10">
+          <input type="number" id="height" value="120" min="80" max="300" step="10">
         </div>
         <div>
           <label for="font_key">Timer font (image)</label>
@@ -262,13 +271,16 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     </div>
 
     <div class="panel">
-      <h2>Braze notes</h2>
+      <h2>Email / Gmail notes</h2>
       <p class="note" style="margin:0;">
-        Use <strong>Custom HTML</strong> or the HTML block and paste the <code>&lt;img&gt;</code> snippet. Copied HTML uses a <strong>full URL</strong> for <code>img src</code> (this site’s host, or <code>public_base_url</code> in <code>data/secrets.php</code>). Use <strong>HTTPS</strong> in production. The default URL serves an <strong>animated GIF</strong> that steps the countdown about once per second for up to 20 seconds after each load (client behavior varies). Each open can refresh the asset; caching is normal. Replace the <code>href=&quot;#&quot;</code> wrapper link with your real CTA URL.
-        For a <strong>per-recipient</strong> end time, append <code>&amp;end=</code> with a Unix timestamp from Liquid, for example
+        <strong>Gmail</strong> plays animated GIFs on web and mobile. Use <strong>Copy Gmail HTML</strong> (table wrapper + width/height + deadline <code>alt</code>). Image URLs must be <strong>absolute HTTPS</strong> via <code>public_base_url</code> or a public https host.
+        The GIF ticks for about <strong>15 seconds</strong> from first fetch, then stops (play-once). Gmail’s <strong>image proxy caches</strong> the file: the first open is accurate; re-opening the same message may show a slightly stale timer — that is expected.
+        Replace <code>https://example.com/cta</code> with your real landing URL. Optional cache isolation between campaigns: append <code>&amp;v=YOUR_CAMPAIGN_ID</code> (ignored by the renderer).
+        For a <strong>static PNG fallback</strong> (Outlook desktop freezes GIFs on frame 1 — our first frame already includes the deadline), use <strong>Copy PNG URL</strong> or add <code>&amp;format=png</code>.
+        For a <strong>per-recipient</strong> end time in Braze Liquid:
         <code class="embed" style="margin-top:0.5rem;display:block;">&amp;end={{event_properties.end_ts}}</code>
-        (your property must be an integer Unix time in seconds). The query override takes precedence over the saved end time.
-        Use <strong>Copy Dynamic HTML</strong> to include the per-timer <code>sig</code> value for signed dynamic URLs.
+        Use <strong>Copy Dynamic HTML</strong> to include the signed <code>sig</code>. Prefer widths ≤ <strong>480–560px</strong> for mobile Gmail.
+        QA checklist: Litmus/Email on Acid → Gmail web, Gmail iOS, Gmail Android, Outlook desktop (first frame), Apple Mail.
       </p>
     </div>
   </div>
@@ -282,6 +294,7 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
     const TIMER_PREVIEW_PREFIX = <?= json_encode($timerPreviewPrefix, JSON_THROW_ON_ERROR) ?>;
     /** Absolute https? URL for pasted email HTML (from request host or public_base_url in secrets) */
     const TIMER_EMBED_PREFIX = <?= json_encode($timerEmbedPrefix, JSON_THROW_ON_ERROR) ?>;
+    const EMBED_HTTPS_OK = <?= $embedIsHttpsAbsolute ? 'true' : 'false' ?>;
     let editingId = null;
     let currentTimers = [];
     let entitlements = null;
@@ -292,6 +305,75 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       t.classList.add('show');
       clearTimeout(t._h);
       t._h = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function requireHttpsEmbed() {
+      if (EMBED_HTTPS_OK) return true;
+      toast('Set public_base_url to https://… before copying for Gmail');
+      return false;
+    }
+
+    function deadlineAlt(endsAt) {
+      const d = new Date(Number(endsAt || 0) * 1000);
+      if (Number.isNaN(d.getTime())) return 'Countdown timer';
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const day = d.getUTCDate();
+      const mon = months[d.getUTCMonth()];
+      const year = d.getUTCFullYear();
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      return 'Countdown — Ends ' + day + ' ' + mon + ' ' + year + ' ' + hh + ':' + mm + ' UTC';
+    }
+
+    function timerSrc(id, opts) {
+      opts = opts || {};
+      let src = TIMER_EMBED_PREFIX + encodeURIComponent(id);
+      if (opts.format === 'png') src += (src.includes('?') ? '&' : '?') + 'format=png';
+      // Optional campaign cache-bust token (ignored by renderer; helps isolate sends in some proxies).
+      if (opts.v) src += '&v=' + encodeURIComponent(String(opts.v));
+      if (opts.endLiquid) {
+        src += '&end={{event_properties.end_ts}}';
+        if (opts.sig) src += '&sig=' + encodeURIComponent(opts.sig);
+      }
+      return src;
+    }
+
+    function embedHtml(id, width, height, endsAt) {
+      const w = width || 480;
+      const h = height || 120;
+      const src = timerSrc(id);
+      const alt = deadlineAlt(endsAt);
+      return '<!-- Email countdown: replace CTA href. Optional &v=campaign_id for cache isolation. -->\n' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="' + w + '" style="border-collapse:collapse;max-width:100%;">\n' +
+        '  <tr>\n' +
+        '    <td align="center" style="padding:0;">\n' +
+        '      <a href="https://example.com/cta" target="_blank" style="text-decoration:none;border:0;">\n' +
+        '        <img src="' + src + '" width="' + w + '" height="' + h + '" alt="' + alt.replace(/"/g, '&quot;') + '" style="display:block;border:0;outline:none;text-decoration:none;max-width:100%;height:auto;" />\n' +
+        '      </a>\n' +
+        '    </td>\n' +
+        '  </tr>\n' +
+        '</table>';
+    }
+
+    function embedHtmlDynamic(id, width, height, endsAt, sig) {
+      const w = width || 480;
+      const h = height || 120;
+      const src = timerSrc(id, { endLiquid: true, sig: sig || '' });
+      const alt = deadlineAlt(endsAt);
+      return '<!-- Dynamic countdown: requires signed end override. Replace CTA href. -->\n' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="' + w + '" style="border-collapse:collapse;max-width:100%;">\n' +
+        '  <tr>\n' +
+        '    <td align="center" style="padding:0;">\n' +
+        '      <a href="https://example.com/cta" target="_blank" style="text-decoration:none;border:0;">\n' +
+        '        <img src="' + src + '" width="' + w + '" height="' + h + '" alt="' + alt.replace(/"/g, '&quot;') + '" style="display:block;border:0;outline:none;text-decoration:none;max-width:100%;height:auto;" />\n' +
+        '      </a>\n' +
+        '    </td>\n' +
+        '  </tr>\n' +
+        '</table>';
+    }
+
+    function pngFallbackUrl(id) {
+      return timerSrc(id, { format: 'png' });
     }
 
     function toUnix(s) {
@@ -315,8 +397,8 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       document.getElementById('bg').value = '#1a1a2e';
       document.getElementById('fg').value = '#eaeaea';
       document.getElementById('ac').value = '#e94560';
-      document.getElementById('width').value = '560';
-      document.getElementById('height').value = '140';
+      document.getElementById('width').value = '480';
+      document.getElementById('height').value = '120';
       document.getElementById('font_key').value = 'noto_sans_bold';
       document.getElementById('font_size_main').value = '32';
       document.getElementById('layout_key').value = 'segmented_pills';
@@ -334,33 +416,14 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
       document.getElementById('bg').value = t.bg_color || '#1a1a2e';
       document.getElementById('fg').value = t.text_color || '#eaeaea';
       document.getElementById('ac').value = t.accent_color || '#e94560';
-      document.getElementById('width').value = String(Number(t.width || 560));
-      document.getElementById('height').value = String(Number(t.height || 140));
+      document.getElementById('width').value = String(Number(t.width || 480));
+      document.getElementById('height').value = String(Number(t.height || 120));
       document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
       document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
       document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
       document.getElementById('btn-create').textContent = 'Save changes';
       document.getElementById('btn-cancel-edit').style.display = 'inline-block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function embedHtml(id, width) {
-      const w = width || 560;
-      const src = TIMER_EMBED_PREFIX + encodeURIComponent(id);
-      return '<a href="#" style="text-decoration:none;">\n' +
-        '  <img src="' + src + '" width="' + w + '" alt="Countdown" style="display:block;border:0;max-width:100%;height:auto;" />\n' +
-        '</a>';
-    }
-
-    function embedHtmlDynamic(id, width, sig) {
-      const w = width || 560;
-      let src = TIMER_EMBED_PREFIX + encodeURIComponent(id) + '&end={{event_properties.end_ts}}';
-      if (sig) {
-        src += '&sig=' + encodeURIComponent(sig);
-      }
-      return '<a href="#" style="text-decoration:none;">\n' +
-        '  <img src="' + src + '" width="' + w + '" alt="Countdown" style="display:block;border:0;max-width:100%;height:auto;" />\n' +
-        '</a>';
     }
 
     function applyPlanGates() {
@@ -465,10 +528,11 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
             '<h3>' + escapeHtml(t.name) + '</h3>' +
             '<div class="meta">Ends (UTC): ' + ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z · id ' + escapeHtml(t.id.slice(0, 8)) + '… · ' + escapeHtml(t.font_key || 'noto_sans_bold') + ' · ' + Number(t.font_size_main || 32) + 'px · ' + escapeHtml(t.layout_key || 'segmented_pills') + '</div>' +
             '<div class="preview"></div>' +
-            '<div class="embed" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width)) + '</div>' +
+            '<div class="embed" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width, t.height, t.ends_at)) + '</div>' +
             '<div class="row-actions">' +
-            '<button type="button" class="secondary btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '">Copy HTML</button>' +
-            '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '">Copy Dynamic HTML</button>' +
+            '<button type="button" class="secondary btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '"' + (EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"') + '>Copy Gmail HTML</button>' +
+            '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + (EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"') + '>Copy Dynamic HTML</button>' +
+            '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + (EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"') + '>Copy PNG URL</button>' +
             '<button type="button" class="secondary btn-edit" data-id="' + escapeHtml(t.id) + '">Edit</button>' +
             '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button></div>';
           const img = document.createElement('img');
@@ -480,17 +544,30 @@ $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
         }
         list.querySelectorAll('.btn-copy').forEach(btn => {
           btn.addEventListener('click', () => {
+            if (!requireHttpsEmbed()) return;
             const id = btn.getAttribute('data-id');
-            const width = parseInt(btn.getAttribute('data-width') || '560', 10);
-            navigator.clipboard.writeText(embedHtml(id, width)).then(() => toast('Copied HTML'));
+            const width = parseInt(btn.getAttribute('data-width') || '480', 10);
+            const height = parseInt(btn.getAttribute('data-height') || '120', 10);
+            const ends = parseInt(btn.getAttribute('data-ends') || '0', 10);
+            navigator.clipboard.writeText(embedHtml(id, width, height, ends)).then(() => toast('Copied Gmail HTML'));
           });
         });
         list.querySelectorAll('.btn-copy-dynamic').forEach(btn => {
           btn.addEventListener('click', () => {
+            if (!requireHttpsEmbed()) return;
             const id = btn.getAttribute('data-id');
-            const width = parseInt(btn.getAttribute('data-width') || '560', 10);
+            const width = parseInt(btn.getAttribute('data-width') || '480', 10);
+            const height = parseInt(btn.getAttribute('data-height') || '120', 10);
+            const ends = parseInt(btn.getAttribute('data-ends') || '0', 10);
             const sig = btn.getAttribute('data-sig') || '';
-            navigator.clipboard.writeText(embedHtmlDynamic(id, width, sig)).then(() => toast('Copied dynamic HTML'));
+            navigator.clipboard.writeText(embedHtmlDynamic(id, width, height, ends, sig)).then(() => toast('Copied dynamic HTML'));
+          });
+        });
+        list.querySelectorAll('.btn-copy-png').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (!requireHttpsEmbed()) return;
+            const id = btn.getAttribute('data-id');
+            navigator.clipboard.writeText(pngFallbackUrl(id)).then(() => toast('Copied PNG URL'));
           });
         });
         list.querySelectorAll('.btn-del').forEach(btn => {

@@ -5,6 +5,8 @@ declare(strict_types=1);
 const APP_ROOT = __DIR__;
 const DB_PATH = APP_ROOT . '/data/app.db';
 
+require_once __DIR__ . '/lib/observability.php';
+
 /**
  * Root-relative timer image URL prefix, e.g. "/email_timer/timer.php?id=".
  * Derived from SCRIPT_NAME only (no HTTP_HOST / scheme). Works when the request
@@ -65,6 +67,43 @@ function app_embed_origin(): string
     return ($https ? 'https' : 'http') . '://' . $host;
 }
 
+/**
+ * Root web path for this app (leading slash, no trailing slash), e.g. "/email_timer".
+ * Normalizes when handling requests under `/api/*` so emailed links still point at top-level PHP routes.
+ */
+function app_web_path_prefix(): string
+{
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
+    if (str_contains($script, '/api/')) {
+        $appPath = dirname(dirname($script));
+    } else {
+        $appPath = dirname($script);
+    }
+    $appPath = rtrim(str_replace('\\', '/', (string) $appPath), '/');
+    if ($appPath === '' || $appPath === '.' || $appPath === '/') {
+        return '';
+    }
+    if ($appPath[0] !== '/') {
+        $appPath = '/' . ltrim($appPath, '/');
+    }
+
+    return $appPath;
+}
+
+/** Absolute or root-relative URL for a PHP page shipped at the app root (e.g. verify_email.php). */
+function app_absolute_page_url(string $pageFilename): string
+{
+    $pageFilename = basename(str_replace('\\', '/', $pageFilename));
+    $prefix = app_web_path_prefix();
+    $path = ($prefix === '' ? '' : $prefix) . '/' . $pageFilename;
+    if ($path === '' || $path[0] !== '/') {
+        $path = '/' . ltrim($path, '/');
+    }
+    $origin = app_embed_origin();
+
+    return $origin !== '' ? ($origin . $path) : $path;
+}
+
 /** Full URL prefix for pasted email HTML; falls back to root-relative if no host. */
 function app_timer_embed_src_prefix(): string
 {
@@ -75,6 +114,24 @@ function app_timer_embed_src_prefix(): string
     }
 
     return $origin . $rel;
+}
+
+/** True when copied email HTML can use an absolute https:// image URL (required for Gmail). */
+function app_embed_is_https_absolute(): bool
+{
+    $prefix = app_timer_embed_src_prefix();
+
+    return str_starts_with(strtolower($prefix), 'https://');
+}
+
+/** Short UTC deadline string for img alt text / first-frame subtitle. */
+function app_format_deadline_label(int $endsAt): string
+{
+    if ($endsAt <= 0) {
+        return 'Deadline unset';
+    }
+
+    return 'Ends ' . gmdate('j M Y H:i', $endsAt) . ' UTC';
 }
 
 /**

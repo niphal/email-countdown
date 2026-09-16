@@ -9,6 +9,10 @@
 # Auth (copy from secrets.example.php)
 /data/secrets.php
 
+# Runtime mail / debug logs (SMTP "log" transport, reset & verify fallbacks)
+/data/*.log
+/data/*.jsonl
+
 # OS / editor
 .DS_Store
 Thumbs.db

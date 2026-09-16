@@ -19,6 +19,7 @@ if (auth_is_logged_in()) {
 
 $error = '';
 $installedBanner = isset($_GET['installed']);
+$emailVerifiedBanner = isset($_GET['email_verified']);
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!auth_verify_csrf($_POST['csrf'] ?? null)) {
@@ -29,7 +30,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         header('Location: ' . auth_redirect_target($_POST['next'] ?? ($_GET['next'] ?? null)));
         exit;
     } else {
-        $error = 'Incorrect password.';
+        $block = auth_take_login_block();
+        if ($block === AUTH_LOGIN_BLOCK_VERIFY_EMAIL) {
+            $error = 'Confirm your email address before signing in. Check your inbox or resend the verification link.';
+        } else {
+            $error = 'Incorrect password.';
+        }
     }
 }
 
@@ -76,6 +82,7 @@ $next = auth_redirect_target($_GET['next'] ?? null);
     </div>
     <h1>Sign in</h1>
     <?php if ($installedBanner): ?><p class="ok">Installation finished. Sign in with the password you chose.</p><?php endif; ?>
+    <?php if ($emailVerifiedBanner): ?><p class="ok">Email verified. You can sign in now.</p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
     <form method="post" action="login.php">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
@@ -86,7 +93,7 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
       <button type="submit">Continue</button>
     </form>
-    <p class="hint" style="margin-top:0.6rem;"><a href="forgot_password.php">Forgot password?</a></p>
+    <p class="hint" style="margin-top:0.6rem;"><a href="forgot_password.php">Forgot password?</a> · <a href="resend_verification.php">Resend verification</a></p>
     <p class="hint" style="margin-top:0.3rem;"><a href="signup.php">Need an account? Sign up</a></p>
     <p class="hint">Default installs use the seeded owner mailbox above (password from install). Invite additional workspace members via the DB or a future admin UI.</p>
   </div>

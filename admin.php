@@ -48,8 +48,20 @@ if ($cu !== null) {
     button.secondary{background:#ffffff;color:var(--text);border:1px solid var(--border)}
     .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
     .muted{color:var(--muted);font-size:.82rem}
+    .health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin:.8rem 0}
+    .health-item{border:1px solid var(--border);border-radius:10px;padding:.65rem;background:#fbfcfb}
+    .health-item strong{display:block;font-size:.8rem;margin-bottom:.2rem}
+    .health-item.ok strong{color:var(--accent)}
+    .health-item.bad strong{color:#9b1c1c}
+    .events{font-family:var(--font-mono);font-size:.74rem;line-height:1.45;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#fbfcfb;padding:.5rem}
+    .events div{padding:.35rem .25rem;border-bottom:1px solid var(--border)}
+    .events div:last-child{border-bottom:0}
+    .level-error{color:#9b1c1c;font-weight:700}
+    .level-warning{color:#995f00;font-weight:700}
+    .level-info{color:var(--accent);font-weight:700}
     @media (max-width: 860px){.grid{grid-template-columns:1fr 1fr}}
-    @media (max-width: 620px){.wrap{padding:1.2rem .9rem 2rem}.grid{grid-template-columns:1fr}h1{font-size:1.55rem}.row > *{width:100%}}
+    @media (max-width: 860px){.health-grid{grid-template-columns:1fr 1fr}}
+    @media (max-width: 620px){.wrap{padding:1.2rem .9rem 2rem}.grid,.health-grid{grid-template-columns:1fr}h1{font-size:1.55rem}.row > *{width:100%}}
   </style>
 </head>
 <body>
@@ -107,11 +119,23 @@ if ($cu !== null) {
         <span id="msg" class="muted"></span>
       </div>
     </div>
+
+    <div class="panel">
+      <h2 style="margin:.1rem 0 .7rem">Observability</h2>
+      <div id="health-summary" class="muted">Loading health checks…</div>
+      <div id="health-grid" class="health-grid"></div>
+      <div class="row" style="margin:.8rem 0">
+        <button id="refresh-observability" type="button" class="secondary">Refresh events</button>
+        <span class="muted">Recent structured runtime events from <code>data/events.jsonl</code>.</span>
+      </div>
+      <div id="events" class="events"><div class="muted">Loading events…</div></div>
+    </div>
   </div>
 
   <script>
     const MEMBERS_API = 'api/admin_members.php';
     const BILLING_API = 'api/billing.php';
+    const OBS_API = 'api/observability.php';
     const membersEl = document.getElementById('members');
     const msgEl = document.getElementById('msg');
 
@@ -189,6 +213,40 @@ if ($cu !== null) {
       });
     }
 
+    async function loadObservability() {
+      const healthSummary = document.getElementById('health-summary');
+      const healthGrid = document.getElementById('health-grid');
+      const eventsEl = document.getElementById('events');
+      try {
+        const r = await fetch(`${OBS_API}?limit=60`, { credentials: 'same-origin' });
+        const j = await parseJsonSafe(r);
+        if (!r.ok) {
+          healthSummary.textContent = j.error || 'Could not load observability data';
+          eventsEl.innerHTML = '<div class="muted">No observability access.</div>';
+          return;
+        }
+        const health = j.health || {};
+        healthSummary.textContent = `${health.ok ? 'Healthy' : 'Needs attention'} · Request ${esc(health.request_id || '')}`;
+        const checks = health.checks || {};
+        healthGrid.innerHTML = Object.keys(checks).map(k => {
+          const c = checks[k] || {};
+          return `<div class="health-item ${c.ok ? 'ok' : 'bad'}"><strong>${esc(k)}</strong><span class="muted">${esc(c.detail || '')}</span></div>`;
+        }).join('');
+        const events = j.events || [];
+        if (!events.length) {
+          eventsEl.innerHTML = '<div class="muted">No events recorded yet.</div>';
+          return;
+        }
+        eventsEl.innerHTML = events.map(ev => {
+          const fields = ev.fields ? JSON.stringify(ev.fields) : '{}';
+          const lvl = esc(ev.level || 'info');
+          return `<div><span class="level-${lvl}">${lvl.toUpperCase()}</span> ${esc(ev.ts || '')} <strong>${esc(ev.event || '')}</strong><br><span class="muted">${esc(ev.path || '')} · request ${esc(ev.request_id || '')} · ${esc(fields)}</span></div>`;
+        }).join('');
+      } catch (e) {
+        healthSummary.textContent = 'Network error while loading observability';
+      }
+    }
+
     document.getElementById('add-member').addEventListener('click', async () => {
       const payload = {
         email: document.getElementById('m_email').value.trim(),
@@ -230,8 +288,11 @@ if ($cu !== null) {
       }
     });
 
+    document.getElementById('refresh-observability').addEventListener('click', loadObservability);
+
     loadBilling();
     loadMembers();
+    loadObservability();
   </script>
 </body>
 </html>
