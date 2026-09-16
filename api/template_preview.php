@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/lib/timer_templates.php';
+require_once dirname(__DIR__) . '/lib/timer_template_presets.php';
 require_once dirname(__DIR__) . '/lib/timer_fonts.php';
 require_once dirname(__DIR__) . '/timer.php';
 
@@ -25,6 +26,17 @@ function template_preview_style_from_request(int $workspaceId): array
         if (!is_array($body)) {
             $body = [];
         }
+        if (!empty($body['preset_key']) && is_string($body['preset_key'])) {
+            $preset = timer_template_preset_get($body['preset_key']);
+            if ($preset === null) {
+                http_response_code(404);
+                header('Content-Type: text/plain');
+                echo 'Unknown preset';
+                exit;
+            }
+
+            return array_merge($preset, ['bg_image_file' => '']);
+        }
         $payload = timer_template_sanitize_payload($body, false);
         $bgImage = (string) ($body['bg_image_file'] ?? '');
         if ($bgImage === '' && !empty($body['id']) && preg_match('/^[a-f0-9]{32}$/', (string) $body['id'])) {
@@ -35,6 +47,19 @@ function template_preview_style_from_request(int $workspaceId): array
         }
 
         return array_merge($payload, ['bg_image_file' => $bgImage]);
+    }
+
+    $presetKey = (string) ($_GET['preset'] ?? '');
+    if ($presetKey !== '') {
+        $preset = timer_template_preset_get($presetKey);
+        if ($preset === null) {
+            http_response_code(404);
+            header('Content-Type: text/plain');
+            echo 'Unknown preset';
+            exit;
+        }
+
+        return array_merge($preset, ['bg_image_file' => '']);
     }
 
     $id = (string) ($_GET['id'] ?? '');
@@ -109,7 +134,9 @@ $im = render_timer_frame(
     true,
     $bgImage,
     $overlayColor,
-    $overlayOpacity
+    $overlayOpacity,
+    null,
+    false
 );
 imagepng($im);
 imagedestroy($im);

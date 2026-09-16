@@ -26,6 +26,18 @@ function timer_layout_labels(): array
     ];
 }
 
+/** @return array<string, string> */
+function timer_layout_blurbs(): array
+{
+    return [
+        'segmented_pills' => 'Day / hour / min blocks',
+        'split_emphasis' => 'Big number + supporting line',
+        'minimal_editorial' => 'Clean type-led countdown',
+        'progress_hybrid' => 'Digits plus progress bar',
+        'badge_countdown' => 'Badge header over digits',
+    ];
+}
+
 function timer_normalize_layout_key(string $key): string
 {
     if (in_array($key, timer_layout_keys(), true)) {

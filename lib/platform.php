@@ -318,6 +318,9 @@ function platform_create_workspace_owner(PDO $pdo, string $workspaceName, string
         $pdo->prepare('INSERT OR IGNORE INTO workspace_billing (workspace_id, plan_key, status, stripe_customer_id, current_period_end, created_at, updated_at) VALUES (?, "free", "active", "", 0, ?, ?)')
             ->execute([$workspaceId, $now, $now]);
 
+        require_once __DIR__ . '/timer_template_presets.php';
+        timer_template_seed_presets($pdo, $workspaceId, true, timer_template_core_preset_keys());
+
         platform_audit_log($pdo, $workspaceId, $userId, 'workspace.created', 'workspace', (string) $workspaceId, [
             'workspace_name' => $workspaceName,
             'email' => $email,

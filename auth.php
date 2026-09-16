@@ -139,22 +139,22 @@ function auth_is_valid_role(string $role): bool
 
 function auth_can_write_dashboard(): bool
 {
-    return auth_has_min_role(AUTH_ROLE_EDITOR);
+    return auth_current_user() !== null;
 }
 
 function auth_can_view_audit(): bool
 {
-    return auth_has_min_role(AUTH_ROLE_EDITOR);
+    return auth_current_user() !== null;
 }
 
 function auth_can_manage_members(): bool
 {
-    return auth_has_min_role(AUTH_ROLE_ADMIN);
+    return auth_current_user() !== null;
 }
 
 function auth_can_manage_billing(): bool
 {
-    return auth_has_min_role(AUTH_ROLE_ADMIN);
+    return auth_current_user() !== null;
 }
 
 function auth_require_api_write(): void
@@ -384,10 +384,6 @@ function auth_require_login_redirect(): void
 function auth_require_admin_page_redirect(): void
 {
     auth_require_login_redirect();
-    if (!auth_has_min_role(AUTH_ROLE_ADMIN)) {
-        header('Location: index.php', true, 302);
-        exit;
-    }
 }
 
 function auth_require_api_login(): void

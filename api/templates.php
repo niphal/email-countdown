@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/lib/timer_templates.php';
+require_once dirname(__DIR__) . '/lib/timer_template_presets.php';
 require_once dirname(__DIR__) . '/lib/monetization.php';
 
 auth_start_session();
@@ -19,6 +20,9 @@ if ($workspaceId < 1) {
 
 try {
     if ($method === 'GET') {
+        if (isset($_GET['presets'])) {
+            json_response(['presets' => timer_template_presets_list()]);
+        }
         $id = (string) ($_GET['id'] ?? '');
         if ($id !== '') {
             $row = timer_template_get($pdo, $workspaceId, $id);
@@ -33,7 +37,10 @@ try {
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $rows[] = timer_template_normalize_row($row);
         }
-        json_response(['templates' => $rows]);
+        json_response([
+            'templates' => $rows,
+            'presets' => timer_template_presets_list(),
+        ]);
     }
 
     if ($method === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_bg') {
@@ -78,6 +85,36 @@ try {
         $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         if (!is_array($body)) {
             $body = [];
+        }
+        $action = (string) ($body['action'] ?? '');
+        if ($action === 'seed_presets') {
+            $mode = (string) ($body['mode'] ?? 'all');
+            $onlyKeys = $mode === 'core' ? timer_template_core_preset_keys() : null;
+            $result = timer_template_seed_presets($pdo, $workspaceId, !empty($body['only_if_empty']), $onlyKeys);
+            platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, 'template.presets_seeded', 'workspace', (string) $workspaceId, [
+                'added' => $result['added'],
+                'skipped' => $result['skipped'],
+            ]);
+            $stmt = $pdo->prepare('SELECT * FROM timer_templates WHERE workspace_id = ? ORDER BY is_default DESC, updated_at DESC');
+            $stmt->execute([$workspaceId]);
+            $rows = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $rows[] = timer_template_normalize_row($row);
+            }
+            json_response([
+                'ok' => true,
+                'added' => $result['added'],
+                'skipped' => $result['skipped'],
+                'templates' => $rows,
+            ]);
+        }
+        if ($action === 'add_preset') {
+            $key = (string) ($body['preset_key'] ?? '');
+            $row = timer_template_insert_from_preset($pdo, $workspaceId, $key, null, !empty($body['is_default']));
+            platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, 'template.preset_added', 'template', (string) $row['id'], [
+                'preset_key' => $key,
+            ]);
+            json_response(['template' => $row]);
         }
         $payload = timer_template_sanitize_payload($body, true);
         $id = bin2hex(random_bytes(16));

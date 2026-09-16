@@ -15,13 +15,13 @@ require __DIR__ . '/include/app_shell_start.php';
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body gap-5">
         <div>
-          <h2 class="card-title text-lg">Billing &amp; plan</h2>
-          <p class="text-sm text-base-content/60 mt-1">Set the workspace plan and status. Timer limits and premium layouts/fonts follow this plan.</p>
+          <h2 class="card-title text-lg">Access</h2>
+          <p class="text-sm text-base-content/60 mt-1">Every account currently has full access to timers, layouts, fonts, and integrations. Plan labels are kept for future billing only.</p>
         </div>
         <div id="billing" class="text-sm text-base-content/70">Loading…</div>
         <div class="flex flex-wrap gap-3 items-end">
           <fieldset class="fieldset p-0 min-w-[12rem] flex-1">
-            <label class="label" for="plan_key"><span class="label-text font-semibold">Plan</span></label>
+            <label class="label" for="plan_key"><span class="label-text font-semibold">Plan label</span></label>
             <select id="plan_key" class="select select-bordered w-full" aria-label="Plan"></select>
           </fieldset>
           <fieldset class="fieldset p-0 min-w-[10rem] flex-1">
@@ -33,7 +33,7 @@ require __DIR__ . '/include/app_shell_start.php';
               <option value="canceled">Canceled</option>
             </select>
           </fieldset>
-          <button id="save-plan" type="button" class="btn btn-primary">Save billing</button>
+          <button id="save-plan" type="button" class="btn btn-primary">Save</button>
         </div>
       </div>
     </div>
@@ -42,7 +42,7 @@ require __DIR__ . '/include/app_shell_start.php';
       <div class="card-body gap-4">
         <div>
           <h2 class="card-title text-lg">Members &amp; roles</h2>
-          <p class="text-sm text-base-content/60 mt-1">Owners and admins can change roles. Viewers can only look; editors can create and edit timers.</p>
+          <p class="text-sm text-base-content/60 mt-1">All signed-in members can use the full product. Roles are kept for labeling only right now.</p>
         </div>
         <div class="overflow-x-auto rounded-box border border-base-300">
           <table class="table table-sm">
@@ -137,7 +137,7 @@ require __DIR__ . '/include/app_shell_start.php';
       const ent = j.entitlements || {};
       const plans = j.plans || {};
       const billing = document.getElementById('billing');
-      billing.textContent = `Plan ${ent.plan_name || ent.plan_key} ($${ent.monthly_usd || 0}/mo) · Timers ${ent.timer_count || 0}/${ent.max_timers || 0} · Status ${ent.status || 'active'}`;
+      billing.textContent = `Full access · ${ent.timer_count || 0} timer${Number(ent.timer_count || 0) === 1 ? '' : 's'} · Label ${ent.plan_name || ent.plan_key} · Status ${ent.status || 'active'}`;
       const planSel = document.getElementById('plan_key');
       planSel.innerHTML = '';
       Object.keys(plans).forEach(k => {

@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-/** ~15 one-second frames keeps Gmail/mobile GIF weight reasonable while still animating. */
-const TIMER_ANIMATION_FRAMES = 15;
+/** ~10 one-second frames: still animates in email clients without 5s+ encode cost. */
+const TIMER_ANIMATION_FRAMES = 10;
 const TIMER_FRAME_DELAY_CS = 100;
-/** Palette size for GIF frames (lower = smaller file, still readable for countdown digits). */
-const TIMER_GIF_COLORS = 128;
+/** Palette size for GIF frames (lower = smaller/faster, still readable for countdown digits). */
+const TIMER_GIF_COLORS = 64;
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/lib/timer_layouts.php';
 require_once __DIR__ . '/lib/timer_background.php';
+require_once __DIR__ . '/lib/timer_render_cache.php';
 
 if (!function_exists('imagecreatetruecolor')) {
     observability_log('timer.render.gd_missing', 'error');
@@ -105,22 +106,67 @@ if ($format !== 'png' && $format !== 'gif') {
 $renderStart = microtime(true);
 $t0 = time();
 $deadlineLabel = app_format_deadline_label($endsAt);
+$cacheKey = timer_render_cache_key($id, $format, $endsAt, $overrideEnd, $row);
+$cached = timer_render_cache_get($cacheKey, 25);
 
 // Hint freshness to intermediate caches. Gmail's image proxy may still serve a stale copy on re-open.
 header('Cache-Control: public, max-age=30, s-maxage=30');
 header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 30) . ' GMT');
 header('Pragma: no-cache');
 
+if ($cached !== null) {
+    header('Content-Type: ' . ($format === 'png' ? 'image/png' : 'image/gif'));
+    header('X-Timer-Cache: hit');
+    echo $cached;
+    timer_observe_render_success($id, $format, $layoutKey, (int) round((microtime(true) - $renderStart) * 1000), [
+        'cache' => 'hit',
+    ]);
+    exit;
+}
+
 $frames = [];
 $binary = null;
+$bgCanvas = null;
+$buildMs = 0;
+$encodeMs = 0;
 try {
+    $bgCanvas = imagecreatetruecolor($w, $h);
+    if ($bgCanvas === false) {
+        throw new RuntimeException('Could not allocate canvas');
+    }
+    timer_paint_canvas_background($bgCanvas, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
+
+    $buildStart = microtime(true);
+    $quantize = ($format === 'gif');
     for ($k = 0; $k < TIMER_ANIMATION_FRAMES; $k++) {
         $remaining = max(0, $endsAt - ($t0 + $k));
         // First frame includes the deadline for clients that only show frame 1.
-        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, $k === 0, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
+        $frames[] = render_timer_frame(
+            $w,
+            $h,
+            $bg,
+            $fg,
+            $ac,
+            $label,
+            $remaining,
+            $fontPath,
+            $fontSizeMain,
+            $layoutKey,
+            $createdAt,
+            $storedEndsAt,
+            $deadlineLabel,
+            $k === 0,
+            $bgImageFile,
+            $bgOverlayColor,
+            $bgOverlayOpacity,
+            $bgCanvas,
+            $quantize
+        );
     }
+    $buildMs = (int) round((microtime(true) - $buildStart) * 1000);
     $durations = array_fill(0, TIMER_ANIMATION_FRAMES, TIMER_FRAME_DELAY_CS);
 
+    $encodeStart = microtime(true);
     if ($format === 'png') {
         require_once __DIR__ . '/lib/ApngCreator.php';
         $binary = (new ApngCreator())->create($frames, $durations, 1);
@@ -132,6 +178,9 @@ try {
         $binary = $creator->create($frames, $durations, 0);
         header('Content-Type: image/gif');
     }
+    $encodeMs = (int) round((microtime(true) - $encodeStart) * 1000);
+    header('X-Timer-Cache: miss');
+    timer_render_cache_put($cacheKey, $binary);
 } catch (Throwable $e) {
     observability_log('timer.render.failed', 'error', ['timer_id' => $id, 'format' => $format, 'error' => $e->getMessage()]);
     http_response_code(500);
@@ -139,6 +188,9 @@ try {
     echo 'Could not build animated timer.';
     exit;
 } finally {
+    if ($bgCanvas instanceof \GdImage) {
+        imagedestroy($bgCanvas);
+    }
     foreach ($frames as $im) {
         if ($im instanceof \GdImage || (is_resource($im) && get_resource_type($im) === 'gd')) {
             imagedestroy($im);
@@ -147,7 +199,12 @@ try {
 }
 
 echo $binary;
-timer_observe_render_success($id, $format, $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
+timer_observe_render_success($id, $format, $layoutKey, (int) round((microtime(true) - $renderStart) * 1000), [
+    'cache' => 'miss',
+    'build_ms' => $buildMs,
+    'encode_ms' => $encodeMs,
+    'frames' => TIMER_ANIMATION_FRAMES,
+]);
 }
 
 /**
@@ -166,16 +223,17 @@ function parse_hex(string $hex): array
     ];
 }
 
-function timer_observe_render_success(string $id, string $format, string $layoutKey, int $durationMs): void
+function timer_observe_render_success(string $id, string $format, string $layoutKey, int $durationMs, array $extra = []): void
 {
     $slowThreshold = 750;
+    $fields = array_merge([
+        'timer_id' => $id,
+        'format' => $format,
+        'layout' => $layoutKey,
+        'duration_ms' => $durationMs,
+    ], $extra);
     if ($durationMs >= $slowThreshold) {
-        observability_log('timer.render.slow', 'warning', [
-            'timer_id' => $id,
-            'format' => $format,
-            'layout' => $layoutKey,
-            'duration_ms' => $durationMs,
-        ]);
+        observability_log('timer.render.slow', 'warning', $fields);
 
         return;
     }
@@ -183,12 +241,7 @@ function timer_observe_render_success(string $id, string $format, string $layout
     if (!observability_should_sample($sampleRate)) {
         return;
     }
-    observability_log('timer.render.success_sampled', 'info', [
-        'timer_id' => $id,
-        'format' => $format,
-        'layout' => $layoutKey,
-        'duration_ms' => $durationMs,
-    ]);
+    observability_log('timer.render.success_sampled', 'info', $fields);
 }
 
 /**
@@ -213,15 +266,21 @@ function render_timer_frame(
     bool $firstFrame = false,
     string $bgImageFile = '',
     string $bgOverlayColor = '#000000',
-    int $bgOverlayOpacity = 0
+    int $bgOverlayOpacity = 0,
+    ?\GdImage $bgCanvas = null,
+    bool $quantizeForGif = true
 ): \GdImage {
     $im = imagecreatetruecolor($w, $h);
-    timer_paint_canvas_background($im, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
-    $colBg = imagecolorallocate($im, $bg[0], $bg[1], $bg[2]);
+    if ($bgCanvas instanceof \GdImage) {
+        imagecopy($im, $bgCanvas, 0, 0, 0, 0, $w, $h);
+    } else {
+        timer_paint_canvas_background($im, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
+    }
     $colFg = imagecolorallocate($im, $fg[0], $fg[1], $fg[2]);
     $colAc = imagecolorallocate($im, $ac[0], $ac[1], $ac[2]);
     $colMuted = imagecolorallocate($im, (int) (($fg[0] + $bg[0] * 2) / 3), (int) (($fg[1] + $bg[1] * 2) / 3), (int) (($fg[2] + $bg[2] * 2) / 3));
     $colPanel = imagecolorallocate($im, (int) (($bg[0] * 3 + 255) / 4), (int) (($bg[1] * 3 + 255) / 4), (int) (($bg[2] * 3 + 255) / 4));
+    $colBg = imagecolorallocate($im, $bg[0], $bg[1], $bg[2]);
 
     [$days, $hh, $mm, $ss] = timer_split_remaining($remaining);
     $mainLine = sprintf('%02d:%02d:%02d', $hh, $mm, $ss);
@@ -240,26 +299,27 @@ function render_timer_frame(
     $fontSizeMain = (int) max(10, min(72, $fontSizeMain, (int) ($h * 0.52)));
     $fontSizeSub = (int) max(8, min(40, (int) round($fontSizeMain * 0.45)));
     $fontSizeUnit = (int) max(8, (int) round($fontSizeSub * 0.6));
+    $hasTtf = is_readable($fontPath) && function_exists('imagettfbbox');
 
-    if ($ended && is_readable($fontPath) && function_exists('imagettfbbox')) {
+    if ($ended && $hasTtf) {
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 0.85), 'OFFER ENDED', $colAc, $w / 2, $h * 0.42);
         draw_ttf_centered($im, $fontPath, $fontSizeSub, $deadlineLabel !== '' ? $deadlineLabel : 'This offer has expired', $colFg, $w / 2, $h * 0.72);
-    } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'segmented_pills') {
+    } elseif ($hasTtf && $layoutKey === 'segmented_pills') {
         timer_draw_segmented_pills($im, $fontPath, $colPanel, $colAc, $colMuted, $colFg, $days, $hh, $mm, $ss, $fontSizeMain, $fontSizeUnit, $sub);
-    } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'split_emphasis') {
+    } elseif ($hasTtf && $layoutKey === 'split_emphasis') {
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 1.1), $mainLine, $colAc, $w / 2, $h * 0.55);
         draw_ttf_centered($im, $fontPath, $fontSizeSub, 'DAYS LEFT: ' . $daysLine, $colMuted, $w / 2, $h * 0.22);
         draw_ttf_centered($im, $fontPath, $fontSizeUnit, $sub, $colFg, $w / 2, $h * 0.84);
-    } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'minimal_editorial') {
+    } elseif ($hasTtf && $layoutKey === 'minimal_editorial') {
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 1.05), sprintf('%02d  :  %02d  :  %02d', $hh, $mm, $ss), $colAc, $w / 2, $h * 0.50);
         draw_ttf_centered($im, $fontPath, $fontSizeSub, 'D ' . $daysLine, $colMuted, $w / 2, $h * 0.22);
         draw_ttf_centered($im, $fontPath, $fontSizeUnit, $sub, $colFg, $w / 2, $h * 0.80);
-    } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'progress_hybrid') {
+    } elseif ($hasTtf && $layoutKey === 'progress_hybrid') {
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 1.05), $mainLine, $colAc, $w / 2, $h * 0.42);
         draw_ttf_centered($im, $fontPath, $fontSizeSub, 'DAYS ' . $daysLine, $colFg, $w / 2, $h * 0.67);
         timer_draw_progress_bar($im, $colPanel, $colAc, $progress);
         draw_ttf_centered($im, $fontPath, $fontSizeUnit, $sub, $colMuted, $w / 2, $h * 0.86);
-    } elseif (is_readable($fontPath) && function_exists('imagettfbbox') && $layoutKey === 'badge_countdown') {
+    } elseif ($hasTtf && $layoutKey === 'badge_countdown') {
         timer_draw_badge_left($im, $fontPath, $colAc, $colBg, $fontSizeUnit);
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 0.95), sprintf('%02d:%02d:%02d', $hh, $mm, $ss), $colAc, $w * 0.62, $h * 0.45);
         draw_ttf_centered($im, $fontPath, $fontSizeSub, 'D ' . $daysLine . '   ' . $sub, $colFg, $w * 0.62, $h * 0.78);
@@ -270,8 +330,10 @@ function render_timer_frame(
         imagestring_centered($im, 3, $sub, $colFg, $y2);
     }
 
-    // Fewer colors = smaller GIF payloads for Gmail mobile / proxy.
-    imagetruecolortopalette($im, false, TIMER_GIF_COLORS);
+    // Palette conversion is GIF-only — APNG keeps truecolor and avoids this cost.
+    if ($quantizeForGif) {
+        imagetruecolortopalette($im, false, TIMER_GIF_COLORS);
+    }
 
     return $im;
 }

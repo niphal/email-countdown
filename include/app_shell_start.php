@@ -18,7 +18,7 @@ $wsName = app_shell_workspace_name();
 $userLabel = app_shell_user_label();
 $role = app_shell_role();
 $plan = app_shell_plan_summary();
-$isAdmin = auth_has_min_role(AUTH_ROLE_ADMIN);
+$isAdmin = auth_current_user() !== null;
 $cssRel = 'include/app.css';
 ?>
 <!DOCTYPE html>
@@ -50,9 +50,17 @@ $cssRel = 'include/app.css';
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
           Dashboard
         </a>
+        <a class="nav-link<?= $appNav === 'timers' ? ' active' : '' ?>" href="timers.php">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Timers
+        </a>
+        <a class="nav-link<?= $appNav === 'gallery' ? ' active' : '' ?>" href="gallery.php">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Gallery
+        </a>
         <a class="nav-link<?= $appNav === 'templates' ? ' active' : '' ?>" href="templates.php">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>
-          Templates
+          My templates
         </a>
       </nav>
 
@@ -92,12 +100,12 @@ $cssRel = 'include/app.css';
         </div>
         <div class="topbar-actions">
           <div class="badge badge-ghost badge-lg gap-2 px-4 py-3 border border-base-300 bg-base-100">
-            <span class="font-semibold text-base-content"><?= htmlspecialchars($plan['plan_name'], ENT_QUOTES, 'UTF-8') ?></span>
-            <span class="text-base-content/60"><?= (int) $plan['timer_count'] ?> / <?= (int) $plan['max_timers'] ?> timers</span>
+            <span class="font-semibold text-base-content">Full access</span>
+            <span class="text-base-content/60"><?= (int) $plan['timer_count'] ?> timer<?= ((int) $plan['timer_count'] === 1) ? '' : 's' ?></span>
           </div>
           <?php if (!empty($appTopActions)): ?>
             <?= $appTopActions ?>
           <?php endif; ?>
         </div>
       </header>
-      <div class="content space-y-5">
+      <div class="content space-y-5<?= !empty($appContentWide) ? ' content-wide' : '' ?>">

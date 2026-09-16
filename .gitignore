@@ -17,6 +17,10 @@
 /data/template_assets/**/*
 !/data/template_assets/.gitkeep
 
+# Short-lived animated timer response cache
+/data/render_cache/**
+!/data/render_cache/.gitkeep
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -25,5 +29,7 @@ Thumbs.db
 
 # Local scratch files
 /_test_*.php
+/_bench_*.php
+/_inspect_*.php
 /_out.png
 /_curl_out.bin
