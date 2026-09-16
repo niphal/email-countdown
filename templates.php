@@ -10,99 +10,43 @@ require_once __DIR__ . '/auth.php';
 auth_start_session();
 auth_require_login_redirect();
 
-$cu = auth_current_user();
 $canEdit = auth_has_min_role(AUTH_ROLE_EDITOR);
-$workspaceName = 'Workspace';
-if ($cu !== null) {
-    $wst = db()->prepare('SELECT name FROM workspaces WHERE id = ?');
-    $wst->execute([(int) $cu['workspace_id']]);
-    $wn = $wst->fetchColumn();
-    if ($wn !== false) {
-        $workspaceName = (string) $wn;
-    }
-}
+$appNav = 'templates';
+$appTitle = 'Templates';
+$appSubtitle = 'Reusable brand styles with colors, layouts, and background images.';
+$appTopActions = $canEdit ? '<button type="button" class="secondary" id="btn-new-top">+ New template</button>' : '';
+require __DIR__ . '/include/app_shell_start.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Brand templates — Email countdown</title>
-  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
-  <style>
-    :root { --bg:#f3f5f4; --surface:#fff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --ring:rgba(0,66,37,.18); }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color: var(--text); font-family: var(--font-body); }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 2.4rem 1.35rem 3rem; }
-    h1 { font-family: var(--font-display); font-size: 1.95rem; margin: 0 0 .25rem; letter-spacing: -.02em; }
-    .pill { font-size: .82rem; color: var(--muted); font-family: var(--font-mono); }
-    .menu { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0 1.2rem; }
-    .menu a { color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: .4rem .78rem; font-size: .82rem; font-weight: 600; }
-    .menu a.active { border-color: var(--accent); color: var(--accent); background: #f5fbf7; }
-    .layout { display: grid; gap: 1rem; }
-    @media (min-width: 960px) { .layout { grid-template-columns: 300px 1fr; align-items: start; } }
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.15rem; box-shadow: 0 6px 18px rgba(17,24,39,.06); }
-    .panel h2 { margin: 0 0 .5rem; font-size: 1rem; }
-    .lead { color: var(--muted); font-size: .86rem; margin: 0 0 .85rem; line-height: 1.45; }
-    .tpl-list { display: flex; flex-direction: column; gap: .55rem; max-height: 520px; overflow-y: auto; }
-    .tpl-card { border: 1px solid var(--border); border-radius: 10px; padding: .55rem; cursor: pointer; background: #fbfcfb; display: grid; grid-template-columns: 72px 1fr; gap: .55rem; align-items: center; }
-    .tpl-card.active { border-color: var(--accent); background: #f5fbf7; }
-    .tpl-card img { width: 72px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); background: #0f1720; }
-    .tpl-card strong { display: block; font-size: .88rem; }
-    .tpl-card span { font-size: .75rem; color: var(--muted); }
-    .badge { font-size: .68rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
-    label { display: block; font-size: .78rem; color: var(--muted); font-weight: 600; margin: 0 0 .35rem; }
-    input, select, textarea { width: 100%; padding: .52rem .58rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
-    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); outline: none; }
-    .grid { display: grid; gap: .75rem; }
-    @media (min-width: 640px) { .grid-2 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: repeat(3,1fr); } }
-    .row { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .85rem; align-items: center; }
-    button { padding: .55rem .85rem; border: none; border-radius: 10px; background: linear-gradient(135deg,var(--accent),var(--accent-dim)); color: #fff; font-weight: 600; cursor: pointer; }
-    button.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
-    button.danger { background: #fff; color: #9b1c1c; border: 1px solid #efcaca; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .preview-wrap { border: 1px solid var(--border); border-radius: 10px; padding: .75rem; background: #f8faf9; margin-bottom: .85rem; }
-    .preview-wrap img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
-    .msg { font-size: .85rem; margin: .5rem 0 0; padding: .6rem .75rem; border-radius: 8px; display: none; }
-    .msg.show { display: block; }
-    .msg.ok { background: #f5fbf7; border: 1px solid #b7d7c4; }
-    .msg.err { background: rgba(185,28,28,.08); border: 1px solid #efcaca; }
-    .bg-upload { border: 1px dashed var(--border); border-radius: 10px; padding: .75rem; background: #fbfcfb; margin-top: .5rem; }
-    .hint { font-size: .75rem; color: var(--muted); margin-top: .25rem; }
-    input[type="range"] { padding: 0; }
-    input[type="color"] { height: 40px; padding: .2rem; cursor: pointer; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-      <div>
-        <h1>Brand templates</h1>
-        <div class="pill">Workspace: <?= htmlspecialchars($workspaceName, ENT_QUOTES, 'UTF-8') ?></div>
-      </div>
-      <a href="logout.php" class="pill">Log out</a>
-    </div>
-    <div class="menu">
-      <a href="index.php">Dashboard</a>
-      <?php if (auth_has_min_role(AUTH_ROLE_ADMIN)): ?><a href="admin.php">Admin</a><?php endif; ?>
-      <?php if (auth_has_min_role(AUTH_ROLE_ADMIN)): ?><a href="integrations.php">Integrations</a><?php endif; ?>
-      <a href="templates.php" class="active">Templates</a>
-    </div>
-
-    <p class="lead" style="margin-bottom:1rem">Save reusable brand styles—colors, layout, optional background photo with overlay—then pick a template when creating timers on the dashboard.</p>
+<style>
+  .layout { display: grid; gap: 1rem; }
+  @media (min-width: 960px) { .layout { grid-template-columns: 300px 1fr; align-items: start; } }
+  .tpl-list { display: flex; flex-direction: column; gap: .55rem; max-height: 560px; overflow-y: auto; }
+  .tpl-card { border: 1px solid var(--border); border-radius: 10px; padding: .55rem; cursor: pointer; background: #fafbfc; display: grid; grid-template-columns: 72px 1fr; gap: .55rem; align-items: center; }
+  .tpl-card.active { border-color: var(--accent); background: var(--accent-soft); }
+  .tpl-card img { width: 72px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); background: #0f1720; }
+  .preview-wrap { border: 1px solid var(--border); border-radius: 10px; padding: .75rem; background: #f8f9fb; margin-bottom: .85rem; }
+  .msg { font-size: .85rem; margin: .5rem 0 0; padding: .6rem .75rem; border-radius: 8px; display: none; }
+  .msg.show { display: block; }
+  .msg.ok { background: var(--accent-soft); border: 1px solid #b7d7c4; }
+  .msg.err { background: var(--danger-bg); border: 1px solid #efcaca; }
+  .bg-upload { border: 1px dashed var(--border); border-radius: 10px; padding: .75rem; background: #fafbfc; margin-top: .5rem; }
+  .hint { font-size: .75rem; color: var(--muted); margin-top: .25rem; }
+  input[type="range"] { padding: 0; }
+</style>
+<p class="card-lead" style="margin-bottom:1rem">Save reusable brand styles—colors, layout, optional background photo with overlay—then pick a template when creating timers on the dashboard.</p>
 
     <div class="layout">
-      <div class="panel">
+      <div class="card">
         <h2>Your templates</h2>
         <div class="row" style="margin-top:0;margin-bottom:.65rem">
           <?php if ($canEdit): ?><button type="button" id="btn-new" class="secondary">+ New template</button><?php endif; ?>
         </div>
-        <div id="tpl-list" class="tpl-list"><p class="hint">Loading…</p></div>
+        <div id="tpl-list" class="tpl-list"><p class="hint">Loading...</p></div>
       </div>
 
-      <div class="panel">
+      <div class="card">
         <h2 id="editor-title">Edit template</h2>
-        <p class="lead">Changes update the live preview. Upload a wide JPG/PNG (≤2MB) for hero-style backgrounds.</p>
+        <p class="card-lead">Changes update the live preview. Upload a wide JPG/PNG (<=2MB) for hero-style backgrounds.</p>
         <div class="preview-wrap">
           <img id="preview" alt="Template preview" src="" style="display:none">
           <p id="preview-empty" class="hint" style="margin:0;text-align:center">Select or create a template to preview</p>
@@ -287,7 +231,7 @@ if ($cu !== null) {
         const def = Number(t.is_default) ? '<span class="badge">Default</span> ' : '';
         return '<div class="tpl-card' + active + '" data-id="' + esc(t.id) + '">' +
           '<img src="' + thumb + '" alt="" loading="lazy">' +
-          '<div>' + def + '<strong>' + esc(t.name) + '</strong><span>' + esc(t.layout_key) + ' · ' + Number(t.width) + '×' + Number(t.height) + '</span></div></div>';
+          '<div>' + def + '<strong>' + esc(t.name) + '</strong><span>' + esc(t.layout_key) + ' · ' + Number(t.width) + 'Ã—' + Number(t.height) + '</span></div></div>';
       }).join('');
       el.querySelectorAll('.tpl-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -401,5 +345,12 @@ if ($cu !== null) {
 
     load();
   </script>
-</body>
-</html>
+
+<script>
+  (function(){
+    const topBtn = document.getElementById('btn-new-top');
+    const mainBtn = document.getElementById('btn-new');
+    if (topBtn && mainBtn) topBtn.addEventListener('click', () => mainBtn.click());
+  })();
+</script>
+<?php require __DIR__ . '/include/app_shell_end.php'; ?>

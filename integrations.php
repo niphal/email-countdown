@@ -8,85 +8,22 @@ require_once __DIR__ . '/auth.php';
 auth_start_session();
 auth_require_admin_page_redirect();
 
-$cu = auth_current_user();
-$workspaceName = 'Workspace';
-if ($cu !== null) {
-    $stmt = db()->prepare('SELECT name FROM workspaces WHERE id = ?');
-    $stmt->execute([(int) $cu['workspace_id']]);
-    $name = $stmt->fetchColumn();
-    if ($name !== false) {
-        $workspaceName = (string) $name;
-    }
-}
+$appNav = 'integrations';
+$appTitle = 'Integrations';
+$appSubtitle = 'Connect Braze to push Content Blocks and use Connected Content.';
+require __DIR__ . '/include/app_shell_start.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Integrations — Email countdown</title>
-  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
-  <style>
-    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --ring:rgba(0,66,37,.18); }
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%);color:var(--text);font-family:var(--font-body)}
-    .wrap{max-width:880px;margin:0 auto;padding:2.4rem 1.35rem 3rem}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
-    h1{margin:.1rem 0 .25rem;font-family:var(--font-display);font-size:1.95rem;letter-spacing:-.02em}
-    .pill{font-size:.82rem;color:var(--muted);font-family:var(--font-mono)}
-    .menu{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.15rem}
-    .menu a{color:var(--text);text-decoration:none;border:1px solid var(--border);padding:.4rem .78rem;border-radius:999px;font-size:.82rem;font-weight:600}
-    .menu a.active{border-color:var(--accent);color:var(--accent);background:#f5fbf7}
-    .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.15rem 1.3rem;margin-bottom:1rem;box-shadow:0 6px 18px rgba(17,24,39,.06)}
-    .panel h2{margin:.1rem 0 .35rem;font-size:1.05rem}
-    .lead{color:var(--muted);font-size:.88rem;margin:0 0 1rem;line-height:1.45}
-    label{display:block;font-size:.78rem;color:var(--muted);font-weight:600;margin:0 0 .35rem}
-    input,select,textarea{width:100%;padding:.55rem .6rem;border:1px solid var(--border);border-radius:8px;background:#ffffff;color:var(--text);font:inherit}
-    input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring);outline:none}
-    textarea{font-family:var(--font-mono);font-size:.78rem;line-height:1.45;min-height:110px}
-    .grid{display:grid;gap:.85rem}
-    @media (min-width:640px){.grid-2{grid-template-columns:1fr 1fr}}
-    .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.9rem}
-    button{padding:.58rem .85rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));color:#ffffff;font-weight:600;cursor:pointer}
-    button.secondary{background:#ffffff;color:var(--text);border:1px solid var(--border)}
-    button.danger{background:#ffffff;color:#9b1c1c;border:1px solid #efcaca}
-    .muted{color:var(--muted);font-size:.82rem}
-    .status{display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:600;padding:.3rem .65rem;border-radius:999px;border:1px solid var(--border);background:#fbfcfb}
-    .status.on{border-color:#b7d7c4;background:#f5fbf7;color:var(--accent)}
-    .status.off{color:var(--muted)}
-    .alert{margin:0 0 1rem;padding:.75rem .9rem;border-radius:10px;font-size:.88rem;background:rgba(185,28,28,.08);border:1px solid #efcaca}
-    .ok{margin:0 0 1rem;padding:.75rem .9rem;border-radius:10px;font-size:.88rem;background:#f5fbf7;border:1px solid #b7d7c4}
-    .token-box{font-family:var(--font-mono);font-size:.8rem;word-break:break-all;background:#f8faf9;border:1px dashed var(--border);border-radius:8px;padding:.75rem;margin:.5rem 0}
-    table{width:100%;border-collapse:collapse;font-size:.86rem}
-    th{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-    th,td{padding:.55rem .3rem;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
-    code{font-size:.85em;background:#f0f4f1;padding:.08em .3em;border-radius:4px}
-    .steps{margin:.4rem 0 0;padding-left:1.15rem;color:var(--muted);font-size:.86rem;line-height:1.55}
-    @media (max-width:620px){.wrap{padding:1.2rem .9rem 2rem}h1{font-size:1.55rem}.row > *{width:100%}}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <h1>Integrations</h1>
-        <div class="pill">Workspace: <?= htmlspecialchars($workspaceName, ENT_QUOTES, 'UTF-8') ?></div>
-      </div>
-      <a href="logout.php" class="pill">Log out</a>
-    </div>
-    <div class="menu">
-      <a href="index.php">Dashboard</a>
-      <a href="admin.php">Admin</a>
-      <a href="templates.php">Templates</a>
-      <a href="integrations.php" class="active">Integrations</a>
-    </div>
-
-    <div class="panel">
+<style>
+  .status { display:inline-flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600; padding:.3rem .65rem; border-radius:999px; border:1px solid var(--border); background:#fafbfc; }
+  .status.on { border-color:#b7d7c4; background:var(--accent-soft); color:var(--accent); }
+  .steps-list { margin:.4rem 0 0; padding-left:1.15rem; color:var(--muted); font-size:.86rem; line-height:1.55; }
+</style>
+<div class="card">
       <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center">
         <h2 style="margin:0">Braze</h2>
         <span id="braze-status" class="status off">Not connected</span>
       </div>
-      <p class="lead">Connect your Braze REST API so you can push countdown timers into Braze as <strong>Content Blocks</strong> (insert from the Braze editor) and use <strong>Connected Content</strong> for live HTML at send time.</p>
+      <p class="card-lead">Connect your Braze REST API so you can push countdown timers into Braze as <strong>Content Blocks</strong> (insert from the Braze editor) and use <strong>Connected Content</strong> for live HTML at send time.</p>
 
       <div id="https-warning" class="alert" style="display:none">Set <code>public_base_url</code> to an absolute <code>https://</code> origin in <code>data/secrets.php</code> before pushing image URLs to Braze / Gmail.</div>
       <div id="msg" style="display:none"></div>
@@ -108,18 +45,18 @@ if ($cu !== null) {
         <button type="button" id="btn-rotate" class="secondary" style="display:none">Rotate Connected Content token</button>
         <button type="button" id="btn-disconnect" class="danger" style="display:none">Disconnect</button>
       </div>
-      <p class="muted" style="margin-top:.85rem">Create the key in Braze → Settings → APIs and Identifiers. Permissions: <code>content_blocks.create</code>, <code>content_blocks.update</code>, <code>content_blocks.list</code>.</p>
+      <p class="muted" style="margin-top:.85rem">Create the key in Braze â†’ Settings â†’ APIs and Identifiers. Permissions: <code>content_blocks.create</code>, <code>content_blocks.update</code>, <code>content_blocks.list</code>.</p>
     </div>
 
-    <div class="panel" id="cc-panel" style="display:none">
+    <div class="card" id="cc-panel" style="display:none">
       <h2>Connected Content</h2>
-      <p class="lead">Braze calls this URL at send time and inserts the returned HTML. Keep the token secret.</p>
+      <p class="card-lead">Braze calls this URL at send time and inserts the returned HTML. Keep the token secret.</p>
       <label>Endpoint</label>
       <div class="token-box" id="cc-url"></div>
       <label>Token hint</label>
       <p class="muted" id="cc-hint" style="margin:.2rem 0 .8rem"></p>
       <div id="cc-token-once" style="display:none">
-        <div class="ok"><strong>New token (copy now):</strong><div class="token-box" id="cc-token-value"></div></div>
+        <div class="ok-banner"><strong>New token (copy now):</strong><div class="token-box" id="cc-token-value"></div></div>
       </div>
       <label>Example Liquid</label>
       <textarea id="cc-example" readonly></textarea>
@@ -128,9 +65,9 @@ if ($cu !== null) {
       </div>
     </div>
 
-    <div class="panel">
+    <div class="card">
       <h2>Use in Braze</h2>
-      <ol class="steps">
+      <ol class="steps-list">
         <li>Create a timer on the Dashboard.</li>
         <li>Click <strong>Push to Braze</strong> on the timer card (or use Connected Content Liquid).</li>
         <li>In Braze email editor, insert the Content Block, or paste the Connected Content snippet into an HTML block.</li>
@@ -138,10 +75,10 @@ if ($cu !== null) {
       </ol>
     </div>
 
-    <div class="panel">
+    <div class="card">
       <h2>Pushed Content Blocks</h2>
-      <p class="lead">Blocks created or updated in your Braze workspace from this app.</p>
-      <div id="blocks"><p class="muted">Loading…</p></div>
+      <p class="card-lead">Blocks created or updated in your Braze workspace from this app.</p>
+      <div id="blocks"><p class="muted">Loading...</p></div>
     </div>
   </div>
 
@@ -155,7 +92,7 @@ if ($cu !== null) {
     function showMsg(text, ok) {
       if (!text) { msgEl.style.display = 'none'; return; }
       msgEl.style.display = 'block';
-      msgEl.className = ok ? 'ok' : 'alert';
+      msgEl.className = ok ? 'ok-banner' : 'alert';
       msgEl.textContent = text;
     }
 
@@ -283,5 +220,5 @@ if ($cu !== null) {
 
     load();
   </script>
-</body>
-</html>
+
+<?php require __DIR__ . '/include/app_shell_end.php'; ?>

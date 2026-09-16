@@ -7,83 +7,20 @@ require_once __DIR__ . '/auth.php';
 auth_start_session();
 auth_require_admin_page_redirect();
 
-$cu = auth_current_user();
-$workspaceName = 'Workspace';
-if ($cu !== null) {
-    $stmt = db()->prepare('SELECT name FROM workspaces WHERE id = ?');
-    $stmt->execute([(int) $cu['workspace_id']]);
-    $name = $stmt->fetchColumn();
-    if ($name !== false) {
-        $workspaceName = (string) $name;
-    }
-}
+$appNav = 'admin';
+$appTitle = 'Settings';
+$appSubtitle = 'Billing, members, and system health for this workspace.';
+require __DIR__ . '/include/app_shell_start.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin — Email countdown</title>
-  <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
-  <style>
-    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --ring:rgba(0,66,37,.18); }
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%);color:var(--text);font-family:var(--font-body)}
-    .wrap{max-width:1080px;margin:0 auto;padding:2.4rem 1.35rem 3rem}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
-    h1{margin:.1rem 0 .25rem;font-family:var(--font-display);font-size:1.95rem;letter-spacing:-.02em}
-    .pill{font-size:.82rem;color:var(--muted);font-family:var(--font-mono)}
-    .menu{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.15rem}
-    .menu a{color:var(--text);text-decoration:none;border:1px solid var(--border);padding:.4rem .78rem;border-radius:999px;font-size:.82rem;font-weight:600}
-    .menu a.active{border-color:var(--accent);color:var(--accent);background:#f5fbf7}
-    .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:0 6px 18px rgba(17,24,39,.06)}
-    table{width:100%;border-collapse:collapse;font-size:.88rem}
-    th{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-    th,td{padding:.6rem .35rem;border-bottom:1px solid var(--border);text-align:left}
-    input,select{width:100%;padding:.55rem .6rem;border:1px solid var(--border);border-radius:8px;background:#ffffff;color:var(--text)}
-    input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring);outline:none}
-    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
-    button{padding:.58rem .85rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-dim));color:#ffffff;font-weight:600;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
-    button:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(0,66,37,.2)}
-    button.secondary{background:#ffffff;color:var(--text);border:1px solid var(--border)}
-    .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-    .muted{color:var(--muted);font-size:.82rem}
-    .health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin:.8rem 0}
-    .health-item{border:1px solid var(--border);border-radius:10px;padding:.65rem;background:#fbfcfb}
-    .health-item strong{display:block;font-size:.8rem;margin-bottom:.2rem}
-    .health-item.ok strong{color:var(--accent)}
-    .health-item.bad strong{color:#9b1c1c}
-    .events{font-family:var(--font-mono);font-size:.74rem;line-height:1.45;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#fbfcfb;padding:.5rem}
-    .events div{padding:.35rem .25rem;border-bottom:1px solid var(--border)}
-    .events div:last-child{border-bottom:0}
-    .level-error{color:#9b1c1c;font-weight:700}
-    .level-warning{color:#995f00;font-weight:700}
-    .level-info{color:var(--accent);font-weight:700}
-    @media (max-width: 860px){.grid{grid-template-columns:1fr 1fr}}
-    @media (max-width: 860px){.health-grid{grid-template-columns:1fr 1fr}}
-    @media (max-width: 620px){.wrap{padding:1.2rem .9rem 2rem}.grid,.health-grid{grid-template-columns:1fr}h1{font-size:1.55rem}.row > *{width:100%}}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <h1>Admin</h1>
-        <div class="pill">Workspace: <?= htmlspecialchars($workspaceName, ENT_QUOTES, 'UTF-8') ?> · Role: <?= htmlspecialchars((string)($cu['role'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
-      </div>
-      <a href="logout.php" class="pill">Log out</a>
-    </div>
-    <div class="menu">
-      <a href="index.php">Dashboard</a>
-      <a href="admin.php" class="active">Admin</a>
-      <a href="integrations.php">Integrations</a>
-      <a href="templates.php">Templates</a>
-    </div>
-
-    <div class="panel">
+<style>
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .8rem; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } .row > * { width: 100%; } }
+</style>
+<div class="card">
       <h2 style="margin:.1rem 0 .35rem">Billing &amp; plan</h2>
       <p class="muted" style="margin:0 0 .7rem">Set the workspace plan and status. Timer limits and premium layouts/fonts follow this plan.</p>
-      <div id="billing" class="muted">Loading…</div>
+      <div id="billing" class="muted">Loading...</div>
       <div class="row" style="margin-top:.7rem">
         <select id="plan_key" aria-label="Plan"></select>
         <select id="plan_status" aria-label="Plan status">
@@ -96,16 +33,16 @@ if ($cu !== null) {
       </div>
     </div>
 
-    <div class="panel">
+    <div class="card">
       <h2 style="margin:.1rem 0 .35rem">Members &amp; roles</h2>
       <p class="muted" style="margin:0 0 .7rem">Owners and admins can change roles. Viewers can only look; editors can create and edit timers.</p>
       <table>
         <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Active</th><th>Action</th></tr></thead>
-        <tbody id="members"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+        <tbody id="members"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
       </table>
     </div>
 
-    <div class="panel">
+    <div class="card">
       <h2 style="margin:.1rem 0 .35rem">Invite member</h2>
       <p class="muted" style="margin:0 0 .7rem">Creates or links a user to this workspace and emails a verification link when mail is configured.</p>
       <div class="grid">
@@ -137,16 +74,16 @@ if ($cu !== null) {
       </div>
     </div>
 
-    <div class="panel">
+    <div class="card">
       <h2 style="margin:.1rem 0 .35rem">System health</h2>
       <p class="muted" style="margin:0 0 .7rem">Runtime checks and recent structured events (renders, mail, auth).</p>
-      <div id="health-summary" class="muted">Loading health checks…</div>
+      <div id="health-summary" class="muted">Loading health checks...</div>
       <div id="health-grid" class="health-grid"></div>
       <div class="row" style="margin:.8rem 0">
         <button id="refresh-observability" type="button" class="secondary">Refresh events</button>
         <span class="muted">From <code>data/events.jsonl</code></span>
       </div>
-      <div id="events" class="events"><div class="muted">Loading events…</div></div>
+      <div id="events" class="events"><div class="muted">Loading events...</div></div>
     </div>
   </div>
 
@@ -312,6 +249,5 @@ if ($cu !== null) {
     loadMembers();
     loadObservability();
   </script>
-</body>
-</html>
 
+<?php require __DIR__ . '/include/app_shell_end.php'; ?>
