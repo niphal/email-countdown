@@ -76,6 +76,8 @@ if ($cu !== null) {
     <div class="menu">
       <a href="index.php">Dashboard</a>
       <a href="admin.php" class="active">Admin</a>
+      <a href="integrations.php">Integrations</a>
+      <a href="templates.php">Templates</a>
     </div>
 
     <div class="panel">

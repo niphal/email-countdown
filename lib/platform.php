@@ -118,6 +118,55 @@ function platform_schema_migrate(PDO $pdo): void
         created_at INTEGER NOT NULL
     )');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS braze_connections (
+        workspace_id INTEGER PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+        rest_endpoint TEXT NOT NULL,
+        api_key TEXT NOT NULL,
+        api_key_hint TEXT NOT NULL DEFAULT "",
+        connected_content_token_hash TEXT NOT NULL DEFAULT "",
+        connected_content_token_hint TEXT NOT NULL DEFAULT "",
+        last_tested_at INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT NOT NULL DEFAULT "",
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS braze_content_blocks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        timer_id TEXT NOT NULL,
+        content_block_id TEXT NOT NULL DEFAULT "",
+        liquid_tag TEXT NOT NULL DEFAULT "",
+        block_name TEXT NOT NULL DEFAULT "",
+        last_pushed_at INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT NOT NULL DEFAULT "",
+        UNIQUE(workspace_id, timer_id)
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_braze_blocks_ws ON braze_content_blocks(workspace_id)');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS timer_templates (
+        id TEXT PRIMARY KEY,
+        workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT "",
+        bg_color TEXT NOT NULL DEFAULT "#1a1a2e",
+        text_color TEXT NOT NULL DEFAULT "#eaeaea",
+        accent_color TEXT NOT NULL DEFAULT "#e94560",
+        default_label TEXT NOT NULL DEFAULT "",
+        width INTEGER NOT NULL DEFAULT 480,
+        height INTEGER NOT NULL DEFAULT 120,
+        font_key TEXT NOT NULL DEFAULT "noto_sans_bold",
+        font_size_main INTEGER NOT NULL DEFAULT 32,
+        layout_key TEXT NOT NULL DEFAULT "segmented_pills",
+        bg_image_file TEXT NOT NULL DEFAULT "",
+        bg_overlay_color TEXT NOT NULL DEFAULT "#000000",
+        bg_overlay_opacity INTEGER NOT NULL DEFAULT 35,
+        is_default INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_timer_templates_ws ON timer_templates(workspace_id, updated_at DESC)');
+
     $tcols = [];
     foreach ($pdo->query('PRAGMA table_info(timers)') as $row) {
         $tcols[(string) $row['name']] = true;

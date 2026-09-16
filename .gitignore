@@ -13,6 +13,10 @@
 /data/*.log
 /data/*.jsonl
 
+# Uploaded brand template backgrounds (per workspace)
+/data/template_assets/**/*
+!/data/template_assets/.gitkeep
+
 # OS / editor
 .DS_Store
 Thumbs.db

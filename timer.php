@@ -11,6 +11,7 @@ const TIMER_GIF_COLORS = 128;
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/lib/timer_layouts.php';
+require_once __DIR__ . '/lib/timer_background.php';
 
 if (!function_exists('imagecreatetruecolor')) {
     observability_log('timer.render.gd_missing', 'error');
@@ -20,6 +21,8 @@ if (!function_exists('imagecreatetruecolor')) {
     exit;
 }
 
+function timer_serve_image_request(): void
+{
 $id = $_GET['id'] ?? '';
 if (!preg_match('/^[a-f0-9]{32}$/', $id)) {
     observability_log('timer.render.bad_id', 'warning');
@@ -45,7 +48,7 @@ if ($overrideEnd !== null) {
     }
 }
 
-$stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, created_at FROM timers WHERE id = ?');
+$stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, created_at, bg_image_file, bg_overlay_color, bg_overlay_opacity FROM timers WHERE id = ?');
 $stmt->execute([$id]);
 $row = $stmt->fetch();
 if (!$row) {
@@ -74,6 +77,9 @@ if ($fontSizeMain < 14) {
 if ($fontSizeMain > 72) {
     $fontSizeMain = 72;
 }
+$bgImageFile = (string) ($row['bg_image_file'] ?? '');
+$bgOverlayColor = (string) ($row['bg_overlay_color'] ?? '#000000');
+$bgOverlayOpacity = (int) ($row['bg_overlay_opacity'] ?? 0);
 
 if (!timer_gd_has_freetype()) {
     observability_log('timer.render.freetype_missing', 'error', ['timer_id' => $id]);
@@ -111,7 +117,7 @@ try {
     for ($k = 0; $k < TIMER_ANIMATION_FRAMES; $k++) {
         $remaining = max(0, $endsAt - ($t0 + $k));
         // First frame includes the deadline for clients that only show frame 1.
-        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, $k === 0);
+        $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, $k === 0, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
     }
     $durations = array_fill(0, TIMER_ANIMATION_FRAMES, TIMER_FRAME_DELAY_CS);
 
@@ -142,7 +148,8 @@ try {
 
 echo $binary;
 timer_observe_render_success($id, $format, $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
-exit;
+}
+
 /**
  * @return array{0:int,1:int,2:int}
  */
@@ -203,16 +210,18 @@ function render_timer_frame(
     int $createdAt,
     int $storedEndsAt,
     string $deadlineLabel = '',
-    bool $firstFrame = false
-): \GdImage
-{
+    bool $firstFrame = false,
+    string $bgImageFile = '',
+    string $bgOverlayColor = '#000000',
+    int $bgOverlayOpacity = 0
+): \GdImage {
     $im = imagecreatetruecolor($w, $h);
+    timer_paint_canvas_background($im, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
     $colBg = imagecolorallocate($im, $bg[0], $bg[1], $bg[2]);
     $colFg = imagecolorallocate($im, $fg[0], $fg[1], $fg[2]);
     $colAc = imagecolorallocate($im, $ac[0], $ac[1], $ac[2]);
     $colMuted = imagecolorallocate($im, (int) (($fg[0] + $bg[0] * 2) / 3), (int) (($fg[1] + $bg[1] * 2) / 3), (int) (($fg[2] + $bg[2] * 2) / 3));
     $colPanel = imagecolorallocate($im, (int) (($bg[0] * 3 + 255) / 4), (int) (($bg[1] * 3 + 255) / 4), (int) (($bg[2] * 3 + 255) / 4));
-    imagefilledrectangle($im, 0, 0, $w, $h, $colBg);
 
     [$days, $hh, $mm, $ss] = timer_split_remaining($remaining);
     $mainLine = sprintf('%02d:%02d:%02d', $hh, $mm, $ss);
@@ -372,4 +381,8 @@ function imagestring_centered($im, int $font, string $text, int $color, int $y):
     $w = imagesx($im);
     $x = (int) (($w - $tw) / 2);
     imagestring($im, $font, $x, $y, $text, $color);
+}
+
+if (PHP_SAPI !== 'cli' && realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === realpath(__FILE__)) {
+    timer_serve_image_request();
 }

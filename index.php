@@ -230,6 +230,8 @@ if ($embedNeedsPublicBase) {
         <div class="menu">
           <a href="index.php" class="active">Dashboard</a>
           <?php if (auth_has_min_role(AUTH_ROLE_ADMIN)): ?><a href="admin.php">Admin</a><?php endif; ?>
+          <?php if (auth_has_min_role(AUTH_ROLE_ADMIN)): ?><a href="integrations.php">Integrations</a><?php endif; ?>
+          <a href="templates.php">Templates</a>
         </div>
       </div>
       <a class="logout" href="logout.php">Log out</a>
@@ -260,6 +262,13 @@ if ($embedNeedsPublicBase) {
       <p class="panel-lead">Name it, set when it ends, then create. Open Appearance only if you need colors, size, or layout.</p>
       <form id="create-form">
         <div class="grid grid-2">
+          <div>
+            <label for="template_id">Brand template</label>
+            <select id="template_id" name="template_id">
+              <option value="">Custom appearance</option>
+            </select>
+            <p class="field-hint"><a href="templates.php">Manage templates</a> · applies colors, layout, and background</p>
+          </div>
           <div>
             <label for="name">Internal name</label>
             <input type="text" id="name" name="name" required placeholder="Spring sale ends" autocomplete="off">
@@ -334,7 +343,8 @@ if ($embedNeedsPublicBase) {
           Use <strong>Copy for Gmail</strong> (table wrapper, width/height, deadline in <code>alt</code>). Image URLs must be absolute HTTPS via <code>public_base_url</code>.
           The GIF plays ~15 seconds once; Gmail’s proxy caches it—first open is accurate, re-opens may look slightly stale.
           Replace <code>https://example.com/cta</code> with your landing URL. Optional <code>&amp;v=CAMPAIGN_ID</code> isolates caches between sends.
-          <strong>Copy PNG URL</strong> is the same ticking countdown as GIF (animated PNG / APNG). Prefer <strong>Copy for Gmail</strong> — Gmail animates GIF more reliably than APNG.
+          <strong>Copy PNG countdown</strong> is the same ticking countdown as GIF (animated PNG / APNG). Prefer <strong>Copy for Gmail</strong> — Gmail animates GIF more reliably than APNG.
+          Connect Braze under <strong>Integrations</strong>, then use <strong>Push to Braze</strong> (Content Block) or <strong>Copy Braze Liquid</strong> (Connected Content).
           <strong>Copy Dynamic HTML</strong> adds Braze Liquid <code>&amp;end={{event_properties.end_ts}}</code> with a signed <code>sig</code>.
           QA: Litmus/Email on Acid → Gmail web, iOS, Android, Outlook desktop (first frame), Apple Mail.
         </p>
@@ -355,6 +365,8 @@ if ($embedNeedsPublicBase) {
     const API = 'api/timers.php';
     const BILLING_API = 'api/billing.php';
     const AUDIT_API = 'api/audit.php';
+    const BRAZE_API = 'api/braze.php';
+    const TEMPLATES_API = 'api/templates.php';
     /** Root-relative: dashboard preview only */
     const TIMER_PREVIEW_PREFIX = <?= json_encode($timerPreviewPrefix, JSON_THROW_ON_ERROR) ?>;
     /** Absolute https? URL for pasted email HTML (from request host or public_base_url in secrets) */
@@ -363,6 +375,54 @@ if ($embedNeedsPublicBase) {
     let editingId = null;
     let currentTimers = [];
     let entitlements = null;
+    let brazeConnected = false;
+    let templateCatalog = [];
+
+    function applyTemplateToForm(templateId) {
+      const t = templateCatalog.find(x => x.id === templateId);
+      if (!t) return;
+      document.getElementById('bg').value = t.bg_color || '#1a1a2e';
+      document.getElementById('fg').value = t.text_color || '#eaeaea';
+      document.getElementById('ac').value = t.accent_color || '#e94560';
+      document.getElementById('width').value = String(Number(t.width || 480));
+      document.getElementById('height').value = String(Number(t.height || 120));
+      document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
+      document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
+      document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
+      if (!document.getElementById('label').value.trim() && t.default_label) {
+        document.getElementById('label').value = t.default_label;
+      }
+      document.getElementById('appearance').open = true;
+    }
+
+    async function loadTemplatesForForm() {
+      try {
+        const r = await fetch(TEMPLATES_API, { credentials: 'same-origin' });
+        if (!r.ok) return;
+        const j = await r.json();
+        templateCatalog = j.templates || [];
+        const sel = document.getElementById('template_id');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Custom appearance</option>';
+        templateCatalog.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name + (Number(t.is_default) ? ' (default)' : '');
+          if (t.id === current) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        const def = templateCatalog.find(t => Number(t.is_default) === 1);
+        if (!current && def && !editingId) {
+          sel.value = def.id;
+          applyTemplateToForm(def.id);
+        }
+      } catch (e) {}
+    }
+
+    document.getElementById('template_id').addEventListener('change', () => {
+      const id = document.getElementById('template_id').value;
+      if (id) applyTemplateToForm(id);
+    });
 
     function toast(msg) {
       const t = document.getElementById('toast');
@@ -607,6 +667,8 @@ if ($embedNeedsPublicBase) {
             '<div class="actions-secondary">' +
             '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + httpsAttrs + '>Copy Dynamic HTML</button>' +
             '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + httpsAttrs + '>Copy PNG countdown</button>' +
+            '<button type="button" class="secondary btn-braze-push" data-id="' + escapeHtml(t.id) + '"' + (brazeConnected && EMBED_HTTPS_OK ? '' : ' disabled title="' + (brazeConnected ? 'Requires https public_base_url' : 'Connect Braze in Integrations') + '"') + '>Push to Braze</button>' +
+            '<button type="button" class="secondary btn-braze-cc" data-id="' + escapeHtml(t.id) + '"' + (brazeConnected ? '' : ' disabled title="Connect Braze in Integrations"') + '>Copy Braze Liquid</button>' +
             '<button type="button" class="secondary btn-toggle-embed" data-id="' + escapeHtml(t.id) + '">Show HTML</button>' +
             '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button>' +
             '</div>' +
@@ -653,6 +715,62 @@ if ($embedNeedsPublicBase) {
             if (!el) return;
             const open = el.classList.toggle('show');
             btn.textContent = open ? 'Hide HTML' : 'Show HTML';
+          });
+        });
+        list.querySelectorAll('.btn-braze-push').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            btn.disabled = true;
+            try {
+              const r = await fetch(BRAZE_API, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'push_content_block', timer_id: id })
+              });
+              const j = await r.json();
+              if (!r.ok || !j.ok) {
+                toast(j.error || 'Braze push failed');
+                return;
+              }
+              toast('Pushed to Braze — ' + (j.liquid_tag || j.block_name || 'content block'));
+              if (j.liquid_tag) {
+                navigator.clipboard.writeText(j.liquid_tag).catch(() => {});
+              }
+            } catch (e) {
+              toast('Braze push failed');
+            } finally {
+              btn.disabled = !brazeConnected || !EMBED_HTTPS_OK;
+            }
+          });
+        });
+        list.querySelectorAll('.btn-braze-cc').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            try {
+              const r = await fetch(BRAZE_API, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'snippets', timer_id: id })
+              });
+              const j = await r.json();
+              if (!r.ok) {
+                toast(j.error || 'Could not load Braze snippet');
+                return;
+              }
+              const text = j.content_block_liquid
+                ? j.content_block_liquid
+                : (j.connected_content_liquid || '');
+              if (!text) {
+                toast('No Braze snippet available');
+                return;
+              }
+              await navigator.clipboard.writeText(text);
+              toast(j.content_block_liquid ? 'Copied Content Block Liquid' : 'Copied Connected Content Liquid');
+            } catch (e) {
+              toast('Could not copy Braze Liquid');
+            }
           });
         });
         list.querySelectorAll('.btn-del').forEach(btn => {
@@ -714,6 +832,7 @@ if ($embedNeedsPublicBase) {
         font_key: document.getElementById('font_key').value,
         font_size_main: parseInt(document.getElementById('font_size_main').value, 10) || 32,
         layout_key: document.getElementById('layout_key').value,
+        template_id: document.getElementById('template_id').value.trim() || undefined,
       };
       const btn = document.getElementById('btn-create');
       btn.disabled = true;
@@ -749,10 +868,22 @@ if ($embedNeedsPublicBase) {
       toast('Upgrade flow placeholder: connect Stripe checkout to workspace_billing.');
     });
 
+    async function loadBrazeStatus() {
+      try {
+        const r = await fetch(BRAZE_API, { credentials: 'same-origin' });
+        if (!r.ok) return;
+        const j = await r.json();
+        brazeConnected = !!j.connected;
+      } catch (e) {}
+    }
+
     resetCreateForm();
-    loadBilling();
-    loadList();
-    loadAudit();
+    loadBrazeStatus().then(() => {
+      loadTemplatesForForm();
+      loadBilling();
+      loadList();
+      loadAudit();
+    });
   </script>
 </body>
 </html>

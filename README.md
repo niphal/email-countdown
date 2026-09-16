@@ -65,6 +65,23 @@ Point the document root (or a URL path) at this project, then open `install.php`
 3. Ensure **`public_base_url`** in `data/secrets.php` is an absolute **`https://`** origin (required for Gmail image loading).
 4. Use **Copy Gmail HTML** and paste into your ESP’s custom HTML. Replace `https://example.com/cta` with your landing URL.
 5. Optional: **Copy PNG countdown** for the same animated sequence as APNG; **Copy Dynamic HTML** for signed per-recipient `&end=` overrides.
+6. **Braze**: open **Integrations**, connect your REST API key, then **Push to Braze** on a timer (creates/updates a Content Block) or **Copy Braze Liquid** for Connected Content.
+
+### Brand templates
+
+1. Open **Templates** and create a style (colors, layout, optional background photo + overlay).
+2. Mark one template as **default** to pre-fill new timers on the dashboard.
+3. When creating a timer, pick a **Brand template** — appearance (including background image) is applied to the exported GIF/APNG.
+
+### Braze integration
+
+1. In Braze → **Settings → APIs and Identifiers**, create a REST API key with `content_blocks.create`, `content_blocks.update`, and `content_blocks.list`.
+2. In this app → **Integrations**, pick your Braze REST cluster, paste the key, and **Connect Braze**.
+3. Copy the one-time **Connected Content token** (shown only once; rotate anytime).
+4. On the dashboard, **Push to Braze** publishes Gmail-safe countdown HTML as a Content Block — insert it in the Braze email editor via the returned Liquid tag (`{{content_blocks.${…}}}`).
+5. Or paste **Connected Content** Liquid so Braze fetches live HTML at send time from `api/braze_connected.php` (Bearer token required).
+
+True native “apps inside Braze” UI requires Braze’s Technology Partner / marketplace program. Content Blocks + Connected Content are the supported self-serve path marketers can use today without a partner listing.
 
 ### Gmail behavior (important)
 
@@ -98,8 +115,16 @@ Point the document root (or a URL path) at this project, then open `install.php`
 
 | Method | URL | Purpose |
 |--------|-----|---------|
+| `GET` | `api/braze.php` | Braze connection status + pushed Content Blocks (auth) |
+| `PUT` | `api/braze.php` | Connect / update Braze REST credentials (admin) |
+| `DELETE` | `api/braze.php` | Disconnect Braze (admin) |
+| `POST` | `api/braze.php` | `action=test` \| `rotate_token` \| `push_content_block` \| `snippets` |
+| `GET` | `api/braze_connected.php?timer_id=` | Braze Connected Content JSON (`html`, `image_url`, …) — Bearer token |
+| `GET` | `api/templates.php` | List brand templates |
+| `POST/PUT/DELETE` | `api/templates.php` | Template CRUD (+ multipart background upload) |
+| `GET/POST` | `api/template_preview.php` | PNG preview of template styles |
 | `GET` | `api/timers.php` | List timers in the current workspace |
-| `POST` | `api/timers.php` | Create timer (`owner` / `admin` / `editor` only; JSON body: `name`, `ends_at`, optional `label`, colors, dimensions, fonts, layout) |
+| `POST` | `api/timers.php` | Create timer (optional `template_id` links background image) |
 | `PUT` | `api/timers.php` | Update timer (same roles; JSON body includes `id`) |
 | `DELETE` | `api/timers.php?id=ID` | Delete timer (same roles) |
 | `GET` | `api/audit.php` | Workspace audit log (`owner` / `admin` / `editor`; optional `limit` ≤ 100) |
@@ -129,15 +154,23 @@ verify_email.php      # Consumes signup verification tokens
 resend_verification.php # Sends another verification email (rate limited)
 forgot_password.php   # Request password reset token
 reset_password.php    # Consume token and set new password
+templates.php          # Brand template CRUD + live preview (auth)
+api/templates.php      # Template JSON API + background upload
+api/template_preview.php # PNG preview (GET id or POST draft JSON)
+integrations.php      # Braze connection + Connected Content setup (admin)
+api/braze.php         # Braze connect / push Content Block / snippets (auth)
+api/braze_connected.php # Public Connected Content JSON (Bearer token)
 api/timers.php        # JSON CRUD (auth + workspace scoped)
 api/audit.php         # Workspace audit entries (auth)
 api/billing.php       # Workspace billing + entitlements (auth)
 api/admin_members.php # Member invite/update role + active status (admin)
 api/observability.php # Admin health checks + recent structured runtime events
+lib/braze.php         # Braze REST client + embed/Connected Content helpers
 lib/mail_transport.php# SMTP/log delivery helper for verification & reset flows
 lib/observability.php # JSONL event logging + health helpers
 lib/platform.php      # workspaces / users migrations + audit helpers
 lib/monetization.php  # plan catalog + feature gating helpers
+lib/ApngCreator.php   # Animated PNG (APNG) assembler
 config.php            # SQLite, JSON helpers, root-relative timer URL helper
 timer.php             # Animated GIF (default) or animated PNG/APNG (public)
 index.php             # Dashboard UI (auth required)

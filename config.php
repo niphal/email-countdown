@@ -220,6 +220,18 @@ function db_migrate_timers(PDO $pdo): void
     if (!isset($cols['workspace_id'])) {
         $pdo->exec('ALTER TABLE timers ADD COLUMN workspace_id INTEGER NOT NULL DEFAULT 1');
     }
+    if (!isset($cols['template_id'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN template_id TEXT NOT NULL DEFAULT ""');
+    }
+    if (!isset($cols['bg_image_file'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN bg_image_file TEXT NOT NULL DEFAULT ""');
+    }
+    if (!isset($cols['bg_overlay_color'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN bg_overlay_color TEXT NOT NULL DEFAULT "#000000"');
+    }
+    if (!isset($cols['bg_overlay_opacity'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN bg_overlay_opacity INTEGER NOT NULL DEFAULT 0');
+    }
     if (isset($cols['font_key'])) {
         $pdo->exec("UPDATE timers SET font_key = 'noto_sans_bold' WHERE font_key IN ('system','dejavu_bold','segoe_bold','arial_bold')");
         $pdo->exec("UPDATE timers SET font_key = 'noto_sans' WHERE font_key = 'dejavu_book'");
