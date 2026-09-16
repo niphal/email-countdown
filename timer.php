@@ -93,6 +93,9 @@ if ($fontPath === null) {
 }
 
 $format = strtolower((string) ($_GET['format'] ?? 'gif'));
+if ($format !== 'png' && $format !== 'gif') {
+    $format = 'gif';
+}
 $renderStart = microtime(true);
 $t0 = time();
 $deadlineLabel = app_format_deadline_label($endsAt);
@@ -102,32 +105,29 @@ header('Cache-Control: public, max-age=30, s-maxage=30');
 header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 30) . ' GMT');
 header('Pragma: no-cache');
 
-if ($format === 'png') {
-    header('Content-Type: image/png');
-    $remaining = max(0, $endsAt - $t0);
-    $im = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, false);
-    imagepng($im);
-    imagedestroy($im);
-    timer_observe_render_success($id, 'png', $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
-    exit;
-}
-
-require_once __DIR__ . '/lib/GifCreator.php';
-
 $frames = [];
-$gifBinary = null;
+$binary = null;
 try {
     for ($k = 0; $k < TIMER_ANIMATION_FRAMES; $k++) {
         $remaining = max(0, $endsAt - ($t0 + $k));
-        // First frame is informative for clients that freeze GIF animation (Outlook desktop).
+        // First frame includes the deadline for clients that only show frame 1.
         $frames[] = render_timer_frame($w, $h, $bg, $fg, $ac, $label, $remaining, $fontPath, $fontSizeMain, $layoutKey, $createdAt, $storedEndsAt, $deadlineLabel, $k === 0);
     }
     $durations = array_fill(0, TIMER_ANIMATION_FRAMES, TIMER_FRAME_DELAY_CS);
-    $creator = new GifCreator();
-    $creator->setOmitNetscapeLoop(true);
-    $gifBinary = $creator->create($frames, $durations, 0);
+
+    if ($format === 'png') {
+        require_once __DIR__ . '/lib/ApngCreator.php';
+        $binary = (new ApngCreator())->create($frames, $durations, 1);
+        header('Content-Type: image/png');
+    } else {
+        require_once __DIR__ . '/lib/GifCreator.php';
+        $creator = new GifCreator();
+        $creator->setOmitNetscapeLoop(true);
+        $binary = $creator->create($frames, $durations, 0);
+        header('Content-Type: image/gif');
+    }
 } catch (Throwable $e) {
-    observability_log('timer.render.failed', 'error', ['timer_id' => $id, 'error' => $e->getMessage()]);
+    observability_log('timer.render.failed', 'error', ['timer_id' => $id, 'format' => $format, 'error' => $e->getMessage()]);
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Could not build animated timer.';
@@ -140,10 +140,9 @@ try {
     }
 }
 
-header('Content-Type: image/gif');
-echo $gifBinary;
-timer_observe_render_success($id, 'gif', $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
-
+echo $binary;
+timer_observe_render_success($id, $format, $layoutKey, (int) round((microtime(true) - $renderStart) * 1000));
+exit;
 /**
  * @return array{0:int,1:int,2:int}
  */

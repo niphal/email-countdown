@@ -334,7 +334,8 @@ if ($embedNeedsPublicBase) {
           Use <strong>Copy for Gmail</strong> (table wrapper, width/height, deadline in <code>alt</code>). Image URLs must be absolute HTTPS via <code>public_base_url</code>.
           The GIF plays ~15 seconds once; Gmail’s proxy caches it—first open is accurate, re-opens may look slightly stale.
           Replace <code>https://example.com/cta</code> with your landing URL. Optional <code>&amp;v=CAMPAIGN_ID</code> isolates caches between sends.
-          <strong>Copy PNG URL</strong> is for static fallbacks. <strong>Copy Dynamic HTML</strong> adds Braze Liquid <code>&amp;end={{event_properties.end_ts}}</code> with a signed <code>sig</code>.
+          <strong>Copy PNG URL</strong> is the same ticking countdown as GIF (animated PNG / APNG). Prefer <strong>Copy for Gmail</strong> — Gmail animates GIF more reliably than APNG.
+          <strong>Copy Dynamic HTML</strong> adds Braze Liquid <code>&amp;end={{event_properties.end_ts}}</code> with a signed <code>sig</code>.
           QA: Litmus/Email on Acid → Gmail web, iOS, Android, Outlook desktop (first frame), Apple Mail.
         </p>
       </details>
@@ -605,7 +606,7 @@ if ($embedNeedsPublicBase) {
             '</div>' +
             '<div class="actions-secondary">' +
             '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + httpsAttrs + '>Copy Dynamic HTML</button>' +
-            '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + httpsAttrs + '>Copy PNG URL</button>' +
+            '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + httpsAttrs + '>Copy PNG countdown</button>' +
             '<button type="button" class="secondary btn-toggle-embed" data-id="' + escapeHtml(t.id) + '">Show HTML</button>' +
             '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button>' +
             '</div>' +
@@ -642,7 +643,7 @@ if ($embedNeedsPublicBase) {
           btn.addEventListener('click', () => {
             if (!requireHttpsEmbed()) return;
             const id = btn.getAttribute('data-id');
-            navigator.clipboard.writeText(pngFallbackUrl(id)).then(() => toast('Copied PNG URL'));
+            navigator.clipboard.writeText(pngFallbackUrl(id)).then(() => toast('Copied animated PNG URL'));
           });
         });
         list.querySelectorAll('.btn-toggle-embed').forEach(btn => {

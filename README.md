@@ -1,6 +1,6 @@
 # Email countdown
 
-Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.braze.com/), Gmail-friendly GIF embeds). Inboxes do not run JavaScript, so timers are served as **images**: an **animated GIF** by default (~15 one-second frames from load time) or a **static PNG** if you prefer.
+Small PHP app to build **countdown timers for email** (e.g. [Braze](https://www.braze.com/), Gmail-friendly GIF embeds). Inboxes do not run JavaScript, so timers are served as **images**: an **animated GIF** by default (~15 one-second frames from load time), or the same ticking countdown as **animated PNG (APNG)** via `&format=png`.
 
 ## Requirements
 
@@ -64,7 +64,7 @@ Point the document root (or a URL path) at this project, then open `install.php`
 2. Create a timer (end time, colors, optional label). Prefer **480×120** (or ≤560px wide) for Gmail mobile.
 3. Ensure **`public_base_url`** in `data/secrets.php` is an absolute **`https://`** origin (required for Gmail image loading).
 4. Use **Copy Gmail HTML** and paste into your ESP’s custom HTML. Replace `https://example.com/cta` with your landing URL.
-5. Optional: **Copy PNG URL** for a static fallback; **Copy Dynamic HTML** for signed per-recipient `&end=` overrides.
+5. Optional: **Copy PNG countdown** for the same animated sequence as APNG; **Copy Dynamic HTML** for signed per-recipient `&end=` overrides.
 
 ### Gmail behavior (important)
 
@@ -80,8 +80,8 @@ Point the document root (or a URL path) at this project, then open `install.php`
   `https://YOUR_PUBLIC_ORIGIN/PATH/timer.php?id=TIMER_ID` (origin from the dashboard request or `public_base_url`)  
   Steps the countdown about once per second for up to 15 seconds after each load (client behavior may vary).
 
-- **Static PNG:**  
-  Append `&format=png` for a single frame at request time.
+- **Animated PNG (APNG):**  
+  Append `&format=png` for the same ~15 one-second countdown frames (play-once). Prefer GIF for Gmail; APNG is useful where PNG is required and the client animates it (e.g. many Apple Mail builds). First frame still includes the deadline when animation is ignored.
 
 - **Per-recipient end time (Braze Liquid, etc.):**  
   Append `&end=UNIX_TIMESTAMP` (seconds). That value overrides the stored end time when the image is generated.
@@ -139,7 +139,7 @@ lib/observability.php # JSONL event logging + health helpers
 lib/platform.php      # workspaces / users migrations + audit helpers
 lib/monetization.php  # plan catalog + feature gating helpers
 config.php            # SQLite, JSON helpers, root-relative timer URL helper
-timer.php             # GIF (default) or PNG image (public)
+timer.php             # Animated GIF (default) or animated PNG/APNG (public)
 index.php             # Dashboard UI (auth required)
 admin.php             # Admin UI (members + billing)
 scripts/setup_secrets.php, scripts/hash_password.php
