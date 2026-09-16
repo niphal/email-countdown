@@ -81,6 +81,7 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       <a href="forgot_password.php">Forgot password</a>
     </div>
     <h1>Sign in</h1>
+    <p class="hint" style="margin-top:-0.35rem;margin-bottom:1rem;">Access your workspace to create countdown timers for email.</p>
     <?php if ($installedBanner): ?><p class="ok">Installation finished. Sign in with the password you chose.</p><?php endif; ?>
     <?php if ($emailVerifiedBanner): ?><p class="ok">Email verified. You can sign in now.</p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
@@ -91,11 +92,10 @@ $next = auth_redirect_target($_GET['next'] ?? null);
       <input type="email" id="email" name="email" required autocomplete="username" value="<?= htmlspecialchars(platform_seed_owner_email(), ENT_QUOTES, 'UTF-8') ?>">
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
-      <button type="submit">Continue</button>
+      <button type="submit">Sign in</button>
     </form>
-    <p class="hint" style="margin-top:0.6rem;"><a href="forgot_password.php">Forgot password?</a> · <a href="resend_verification.php">Resend verification</a></p>
-    <p class="hint" style="margin-top:0.3rem;"><a href="signup.php">Need an account? Sign up</a></p>
-    <p class="hint">Default installs use the seeded owner mailbox above (password from install). Invite additional workspace members via the DB or a future admin UI.</p>
+    <p class="hint" style="margin-top:0.75rem;"><a href="forgot_password.php">Forgot password?</a> · <a href="resend_verification.php">Resend verification</a></p>
+    <p class="hint" style="margin-top:0.35rem;"><a href="signup.php">Need an account? Sign up</a></p>
   </div>
 </body>
 </html>

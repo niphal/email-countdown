@@ -82,6 +82,7 @@ $csrf = auth_csrf_token();
       <a href="forgot_password.php">Forgot password</a>
     </div>
     <h1>Create account</h1>
+    <p class="hint" style="margin-top:-0.35rem;margin-bottom:1rem;">Start a workspace, verify your email, then build countdown timers for campaigns.</p>
     <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
     <form method="post" action="signup.php">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">

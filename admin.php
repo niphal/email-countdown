@@ -79,22 +79,24 @@ if ($cu !== null) {
     </div>
 
     <div class="panel">
-      <h2 style="margin:.1rem 0 .7rem">Billing & Plan</h2>
+      <h2 style="margin:.1rem 0 .35rem">Billing &amp; plan</h2>
+      <p class="muted" style="margin:0 0 .7rem">Set the workspace plan and status. Timer limits and premium layouts/fonts follow this plan.</p>
       <div id="billing" class="muted">Loading…</div>
       <div class="row" style="margin-top:.7rem">
-        <select id="plan_key"></select>
-        <select id="plan_status">
-          <option value="active">active</option>
-          <option value="past_due">past_due</option>
-          <option value="paused">paused</option>
-          <option value="canceled">canceled</option>
+        <select id="plan_key" aria-label="Plan"></select>
+        <select id="plan_status" aria-label="Plan status">
+          <option value="active">Active</option>
+          <option value="past_due">Past due</option>
+          <option value="paused">Paused</option>
+          <option value="canceled">Canceled</option>
         </select>
         <button id="save-plan" type="button">Save billing</button>
       </div>
     </div>
 
     <div class="panel">
-      <h2 style="margin:.1rem 0 .7rem">Members & Roles</h2>
+      <h2 style="margin:.1rem 0 .35rem">Members &amp; roles</h2>
+      <p class="muted" style="margin:0 0 .7rem">Owners and admins can change roles. Viewers can only look; editors can create and edit timers.</p>
       <table>
         <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Active</th><th>Action</th></tr></thead>
         <tbody id="members"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
@@ -102,31 +104,45 @@ if ($cu !== null) {
     </div>
 
     <div class="panel">
-      <h2 style="margin:.1rem 0 .7rem">Add / Invite Member</h2>
+      <h2 style="margin:.1rem 0 .35rem">Invite member</h2>
+      <p class="muted" style="margin:0 0 .7rem">Creates or links a user to this workspace and emails a verification link when mail is configured.</p>
       <div class="grid">
-        <input id="m_email" type="email" placeholder="user@company.com">
-        <input id="m_name" type="text" placeholder="Display name">
-        <input id="m_password" type="password" placeholder="Temp password (required for new user)">
-        <select id="m_role">
-          <option value="viewer">viewer</option>
-          <option value="editor">editor</option>
-          <option value="admin">admin</option>
-          <option value="owner">owner</option>
-        </select>
+        <div>
+          <label for="m_email" class="muted" style="display:block;margin-bottom:.35rem;font-size:.78rem;font-weight:600">Work email</label>
+          <input id="m_email" type="email" placeholder="user@company.com" autocomplete="off">
+        </div>
+        <div>
+          <label for="m_name" class="muted" style="display:block;margin-bottom:.35rem;font-size:.78rem;font-weight:600">Display name</label>
+          <input id="m_name" type="text" placeholder="Alex Rivera" autocomplete="off">
+        </div>
+        <div>
+          <label for="m_password" class="muted" style="display:block;margin-bottom:.35rem;font-size:.78rem;font-weight:600">Temp password</label>
+          <input id="m_password" type="password" placeholder="Required for new users" autocomplete="new-password">
+        </div>
+        <div>
+          <label for="m_role" class="muted" style="display:block;margin-bottom:.35rem;font-size:.78rem;font-weight:600">Role</label>
+          <select id="m_role">
+            <option value="viewer">Viewer — read only</option>
+            <option value="editor" selected>Editor — create &amp; edit</option>
+            <option value="admin">Admin — members &amp; billing</option>
+            <option value="owner">Owner — full control</option>
+          </select>
+        </div>
       </div>
       <div class="row" style="margin-top:.8rem">
-        <button id="add-member" type="button">Add member</button>
+        <button id="add-member" type="button">Invite member</button>
         <span id="msg" class="muted"></span>
       </div>
     </div>
 
     <div class="panel">
-      <h2 style="margin:.1rem 0 .7rem">Observability</h2>
+      <h2 style="margin:.1rem 0 .35rem">System health</h2>
+      <p class="muted" style="margin:0 0 .7rem">Runtime checks and recent structured events (renders, mail, auth).</p>
       <div id="health-summary" class="muted">Loading health checks…</div>
       <div id="health-grid" class="health-grid"></div>
       <div class="row" style="margin:.8rem 0">
         <button id="refresh-observability" type="button" class="secondary">Refresh events</button>
-        <span class="muted">Recent structured runtime events from <code>data/events.jsonl</code>.</span>
+        <span class="muted">From <code>data/events.jsonl</code></span>
       </div>
       <div id="events" class="events"><div class="muted">Loading events…</div></div>
     </div>
@@ -189,7 +205,7 @@ if ($cu !== null) {
           <td>${esc(m.display_name || '')}</td>
           <td>
             <select data-role-id="${Number(m.id)}">
-              ${['viewer','editor','admin','owner'].map(r => `<option value="${r}" ${m.role===r?'selected':''}>${r}</option>`).join('')}
+              ${[['viewer','Viewer'],['editor','Editor'],['admin','Admin'],['owner','Owner']].map(([r,lab]) => `<option value="${r}" ${m.role===r?'selected':''}>${lab}</option>`).join('')}
             </select>
           </td>
           <td><input type="checkbox" data-active-id="${Number(m.id)}" ${Number(m.is_active) ? 'checked' : ''}></td>

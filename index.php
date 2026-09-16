@@ -68,7 +68,21 @@ if ($embedNeedsPublicBase) {
       letter-spacing: -0.02em;
       margin: 0 0 0.35rem;
     }
-    .lede { color: var(--muted); max-width: 60ch; margin: 0 0 2.1rem; font-size: 0.98rem; }
+    .lede { color: var(--muted); max-width: 48ch; margin: 0.55rem 0 1.1rem; font-size: 0.98rem; }
+    .steps {
+      display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 0 0 1.35rem; padding: 0; list-style: none;
+    }
+    .steps li {
+      font-size: 0.82rem; font-weight: 600; color: var(--muted);
+      background: #ffffff; border: 1px solid var(--border); border-radius: 999px; padding: 0.35rem 0.75rem;
+    }
+    .steps li strong { color: var(--accent); margin-right: 0.25rem; }
+    .status-bar {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 0.85rem 1.1rem; margin-bottom: 1.2rem; box-shadow: 0 4px 14px rgba(17,24,39,0.04);
+    }
+    .status-bar .plan-name { font-weight: 700; }
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -77,7 +91,61 @@ if ($embedNeedsPublicBase) {
       margin-bottom: 1.2rem;
       box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
     }
-    .panel h2 { font-family: var(--font-ui); font-size: 1.02rem; margin: 0 0 1rem; font-weight: 700; letter-spacing: 0.01em; }
+    .panel h2 { font-family: var(--font-ui); font-size: 1.02rem; margin: 0 0 0.35rem; font-weight: 700; letter-spacing: 0.01em; }
+    .panel-lead { color: var(--muted); font-size: 0.88rem; margin: 0 0 1rem; }
+    .appearance {
+      margin-top: 0.25rem; border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem 1rem;
+      background: #fbfcfb;
+    }
+    .appearance > summary {
+      cursor: pointer; font-weight: 700; font-size: 0.88rem; color: var(--text); list-style: none;
+    }
+    .appearance > summary::-webkit-details-marker { display: none; }
+    .appearance > summary::after { content: "Show"; float: right; color: var(--accent); font-weight: 600; font-size: 0.8rem; }
+    .appearance[open] > summary::after { content: "Hide"; }
+    .appearance .grid { margin-top: 0.9rem; }
+    .alert {
+      margin: 0 0 1.2rem; padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.9rem;
+      background: rgba(185,28,28,0.08); border: 1px solid #efcaca; color: var(--text);
+    }
+    .help-block { margin: 0; }
+    .help-block summary { cursor: pointer; font-weight: 700; color: var(--text); }
+    .help-block .note { margin-top: 0.75rem; }
+    .timer-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem;
+      margin-bottom: 1rem;
+      background: #ffffff;
+    }
+    .timer-card-head { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-start; }
+    .timer-card h3 { font-family: var(--font-accent); margin: 0 0 0.3rem; font-size: 1.05rem; font-weight: 700; }
+    .timer-card .meta { font-size: 0.8rem; color: var(--muted); }
+    .timer-card .meta span { display:inline-block; margin-right: 0.65rem; }
+    .preview { margin-top: 0.85rem; }
+    .preview img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); background:#0f1720; }
+    .embed {
+      display: none;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      line-height: 1.4;
+      background: #f8faf9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 0.75rem;
+    }
+    .embed.show { display: block; }
+    .actions-primary { display:flex; flex-wrap:wrap; gap:0.55rem; margin-top: 0.9rem; }
+    .actions-secondary { display:flex; flex-wrap:wrap; gap:0.45rem; margin-top: 0.55rem; }
+    .empty-state {
+      text-align: left; padding: 1.1rem 0 0.3rem; color: var(--muted);
+    }
+    .empty-state strong { display:block; color: var(--text); margin-bottom: 0.25rem; }
+    .field-hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.42rem; font-weight: 600; }
     input[type="text"], input[type="datetime-local"], input[type="number"], select {
       width: 100%;
@@ -128,30 +196,6 @@ if ($embedNeedsPublicBase) {
     }
     button.danger { background: #ffffff; color: #9b1c1c; border: 1px solid #efcaca; }
     .row-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
-    .timer-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background: #fbfcfb;
-    }
-    .timer-card h3 { font-family: var(--font-accent); margin: 0 0 0.3rem; font-size: 1.02rem; font-weight: 700; }
-    .timer-card .meta { font-size: 0.8rem; color: var(--muted); font-family: var(--font-mono); }
-    .embed {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      line-height: 1.4;
-      background: #f8faf9;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin-top: 0.75rem;
-    }
-    .preview { margin-top: 0.75rem; }
-    .preview img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
     .note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
     .toast { font-family: var(--font-ui); position: fixed; bottom: 1.25rem; right: 1.25rem; background: #ffffff; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(17,24,39,0.12); padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.9rem; display: none; }
     .toast.show { display: block; }
@@ -159,9 +203,8 @@ if ($embedNeedsPublicBase) {
     .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e6ece8; }
     .topbar h1 { margin-bottom: 0; }
     .ws-pill { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); margin-top: 0.35rem; }
-    .audit-lines { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); line-height: 1.55; max-height: 220px; overflow-y: auto; }
+    .audit-lines { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); line-height: 1.55; max-height: 180px; overflow-y: auto; }
     .audit-lines div { padding: 0.2rem 0; border-bottom: 1px solid var(--border); }
-    .billing-card { border: 1px dashed var(--border); border-radius: 10px; padding: 0.8rem; margin: 0 0 1rem; }
     .billing-kpis { display:flex; gap:1rem; flex-wrap:wrap; font-size:0.82rem; color:var(--muted); }
     .billing-kpis span strong { color: var(--text); }
     .menu { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .55rem; }
@@ -173,7 +216,7 @@ if ($embedNeedsPublicBase) {
       .wrap { padding: 1.2rem 0.9rem 2.6rem; }
       h1 { font-size: 1.55rem; }
       .panel { padding: 1rem; }
-      .row-actions button { width: 100%; }
+      .row-actions button, .actions-primary button, .actions-secondary button { width: 100%; }
       .menu { margin-top: 0.7rem; }
     }
   </style>
@@ -191,97 +234,118 @@ if ($embedNeedsPublicBase) {
       </div>
       <a class="logout" href="logout.php">Log out</a>
     </div>
-    <p class="lede">Create timers that render as animated GIFs (~15 one-second frames from load time)—built for Gmail, Braze, and other ESPs (no JavaScript in email). Use <code>?format=png</code> for a static fallback frame. Paste the Gmail-safe HTML into your ESP editor.</p>
+    <p class="lede">Build a countdown, preview it, then copy Gmail-safe HTML into your ESP. Timers are animated GIFs (no JavaScript in email).</p>
+    <ol class="steps" aria-label="How to use">
+      <li><strong>1</strong> Create</li>
+      <li><strong>2</strong> Preview</li>
+      <li><strong>3</strong> Copy for email</li>
+    </ol>
+
     <?php if ($embedBlockedReason === 'root-relative'): ?>
-    <p class="note" style="margin:-1rem 0 1.5rem;padding:0.75rem 1rem;background:rgba(185,28,28,0.08);border:1px solid #efcaca;border-radius:8px;"><strong>Gmail will not load these images yet.</strong> Copied embed URLs are still <strong>root-relative</strong> (no host). Add <code>'public_base_url' =&gt; 'https://your-public-site'</code> to <code>data/secrets.php</code> (no trailing slash), or open the dashboard on your public <strong>https</strong> URL, then copy again.</p>
+    <div class="alert" role="alert"><strong>Gmail will not load these images yet.</strong> Embed URLs are still root-relative. Add <code>'public_base_url' =&gt; 'https://your-public-site'</code> to <code>data/secrets.php</code> (no trailing slash), or open this dashboard on your public HTTPS URL.</div>
     <?php elseif ($embedBlockedReason === 'not-https'): ?>
-    <p class="note" style="margin:-1rem 0 1.5rem;padding:0.75rem 1rem;background:rgba(185,28,28,0.08);border:1px solid #efcaca;border-radius:8px;"><strong>Gmail requires HTTPS image URLs.</strong> Set <code>'public_base_url' =&gt; 'https://…'</code> in <code>data/secrets.php</code> (no trailing slash). HTTP embeds are blocked from Copy until that is fixed.</p>
+    <div class="alert" role="alert"><strong>Gmail requires HTTPS image URLs.</strong> Set <code>'public_base_url' =&gt; 'https://…'</code> in <code>data/secrets.php</code>. Copy is disabled until that is fixed.</div>
     <?php endif; ?>
 
-    <div class="panel">
-      <h2>New timer</h2>
-      <div id="billing-box" class="billing-card">
-        <div id="billing-title" style="font-weight:600;">Plan: Loading…</div>
+    <div class="status-bar" id="billing-box">
+      <div>
+        <div id="billing-title" class="plan-name">Plan: Loading…</div>
         <div id="billing-kpis" class="billing-kpis"></div>
       </div>
-      <form id="create-form" class="grid grid-2">
-        <div>
-          <label for="name">Internal name</label>
-          <input type="text" id="name" name="name" required placeholder="Spring sale ends">
+      <button type="button" id="btn-upgrade" class="secondary">Upgrade</button>
+    </div>
+
+    <div class="panel">
+      <h2>Create timer</h2>
+      <p class="panel-lead">Name it, set when it ends, then create. Open Appearance only if you need colors, size, or layout.</p>
+      <form id="create-form">
+        <div class="grid grid-2">
+          <div>
+            <label for="name">Internal name</label>
+            <input type="text" id="name" name="name" required placeholder="Spring sale ends" autocomplete="off">
+            <p class="field-hint">Only shown in this dashboard</p>
+          </div>
+          <div>
+            <label for="ends">Ends at (your local time)</label>
+            <input type="datetime-local" id="ends" name="ends" required>
+            <p class="field-hint">Stored and shown in email as UTC</p>
+          </div>
+          <div style="grid-column:1 / -1;">
+            <label for="label">Optional line under countdown</label>
+            <input type="text" id="label" name="label" placeholder="Use code SAVE20" autocomplete="off">
+          </div>
         </div>
-        <div>
-          <label for="ends">End date &amp; time (your browser timezone)</label>
-          <input type="datetime-local" id="ends" name="ends" required>
-        </div>
-        <div>
-          <label for="label">Line under countdown (optional)</label>
-          <input type="text" id="label" name="label" placeholder="Use code SAVE20">
-        </div>
-        <div class="grid grid-3">
-          <div><label for="bg">Background</label><input type="color" id="bg" value="#1a1a2e"></div>
-          <div><label for="fg">Text</label><input type="color" id="fg" value="#eaeaea"></div>
-          <div><label for="ac">Countdown</label><input type="color" id="ac" value="#e94560"></div>
-        </div>
-        <div>
-          <label for="width">Width (px)</label>
-          <input type="number" id="width" value="480" min="200" max="600" step="10">
-        </div>
-        <div>
-          <label for="height">Height (px)</label>
-          <input type="number" id="height" value="120" min="80" max="300" step="10">
-        </div>
-        <div>
-          <label for="font_key">Timer font (image)</label>
-          <select id="font_key" name="font_key">
-            <?php foreach (timer_font_labels() as $val => $lab): ?>
-            <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div>
-          <label for="font_size_main">Main text size (px)</label>
-          <input type="number" id="font_size_main" value="32" min="14" max="72" step="1">
-        </div>
-        <div>
-          <label for="layout_key">Timer layout</label>
-          <select id="layout_key" name="layout_key">
-            <?php foreach (timer_layout_labels() as $val => $lab): ?>
-            <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
+        <details class="appearance" id="appearance">
+          <summary>Appearance</summary>
+          <div class="grid grid-2">
+            <div class="grid grid-3" style="grid-column:1 / -1;">
+              <div><label for="bg">Background</label><input type="color" id="bg" value="#1a1a2e"></div>
+              <div><label for="fg">Text</label><input type="color" id="fg" value="#eaeaea"></div>
+              <div><label for="ac">Countdown</label><input type="color" id="ac" value="#e94560"></div>
+            </div>
+            <div>
+              <label for="width">Width (px)</label>
+              <input type="number" id="width" value="480" min="200" max="600" step="10">
+              <p class="field-hint">480–560 works best in mobile Gmail</p>
+            </div>
+            <div>
+              <label for="height">Height (px)</label>
+              <input type="number" id="height" value="120" min="80" max="300" step="10">
+            </div>
+            <div>
+              <label for="layout_key">Layout</label>
+              <select id="layout_key" name="layout_key">
+                <?php foreach (timer_layout_labels() as $val => $lab): ?>
+                <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div>
+              <label for="font_key">Font</label>
+              <select id="font_key" name="font_key">
+                <?php foreach (timer_font_labels() as $val => $lab): ?>
+                <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div>
+              <label for="font_size_main">Main size (px)</label>
+              <input type="number" id="font_size_main" value="32" min="14" max="72" step="1">
+            </div>
+          </div>
+        </details>
       </form>
-      <p class="note" style="margin:0 0 1rem;">Image text uses open-licensed TrueType fonts from the official Google Fonts GitHub sources. Each file is downloaded once into <code>data/fonts/</code> on the server (PHP GD cannot use CSS webfonts).</p>
       <div class="row-actions">
         <button type="submit" form="create-form" id="btn-create">Create timer</button>
         <button type="button" id="btn-cancel-edit" class="secondary" style="display:none;">Cancel edit</button>
-        <button type="button" id="btn-upgrade" class="secondary">Upgrade plans</button>
       </div>
     </div>
 
     <div class="panel">
       <h2>Your timers</h2>
+      <p class="panel-lead">Preview first, then copy HTML for your ESP. Advanced options stay secondary.</p>
       <div id="list"><p class="empty">Loading…</p></div>
     </div>
 
     <div class="panel">
-      <h2>Audit log</h2>
-      <p class="note" style="margin:0 0 0.75rem;">Recent changes in this workspace (owner / admin / editor).</p>
-      <div id="audit" class="audit-lines"><span class="empty">Loading…</span></div>
+      <details class="help-block">
+        <summary>Gmail &amp; ESP tips</summary>
+        <p class="note">
+          Use <strong>Copy for Gmail</strong> (table wrapper, width/height, deadline in <code>alt</code>). Image URLs must be absolute HTTPS via <code>public_base_url</code>.
+          The GIF plays ~15 seconds once; Gmail’s proxy caches it—first open is accurate, re-opens may look slightly stale.
+          Replace <code>https://example.com/cta</code> with your landing URL. Optional <code>&amp;v=CAMPAIGN_ID</code> isolates caches between sends.
+          <strong>Copy PNG URL</strong> is for static fallbacks. <strong>Copy Dynamic HTML</strong> adds Braze Liquid <code>&amp;end={{event_properties.end_ts}}</code> with a signed <code>sig</code>.
+          QA: Litmus/Email on Acid → Gmail web, iOS, Android, Outlook desktop (first frame), Apple Mail.
+        </p>
+      </details>
     </div>
 
     <div class="panel">
-      <h2>Email / Gmail notes</h2>
-      <p class="note" style="margin:0;">
-        <strong>Gmail</strong> plays animated GIFs on web and mobile. Use <strong>Copy Gmail HTML</strong> (table wrapper + width/height + deadline <code>alt</code>). Image URLs must be <strong>absolute HTTPS</strong> via <code>public_base_url</code> or a public https host.
-        The GIF ticks for about <strong>15 seconds</strong> from first fetch, then stops (play-once). Gmail’s <strong>image proxy caches</strong> the file: the first open is accurate; re-opening the same message may show a slightly stale timer — that is expected.
-        Replace <code>https://example.com/cta</code> with your real landing URL. Optional cache isolation between campaigns: append <code>&amp;v=YOUR_CAMPAIGN_ID</code> (ignored by the renderer).
-        For a <strong>static PNG fallback</strong> (Outlook desktop freezes GIFs on frame 1 — our first frame already includes the deadline), use <strong>Copy PNG URL</strong> or add <code>&amp;format=png</code>.
-        For a <strong>per-recipient</strong> end time in Braze Liquid:
-        <code class="embed" style="margin-top:0.5rem;display:block;">&amp;end={{event_properties.end_ts}}</code>
-        Use <strong>Copy Dynamic HTML</strong> to include the signed <code>sig</code>. Prefer widths ≤ <strong>480–560px</strong> for mobile Gmail.
-        QA checklist: Litmus/Email on Acid → Gmail web, Gmail iOS, Gmail Android, Outlook desktop (first frame), Apple Mail.
-      </p>
+      <details class="help-block">
+        <summary>Workspace activity</summary>
+        <p class="note" style="margin-top:0.5rem;">Recent changes in this workspace (owner / admin / editor).</p>
+        <div id="audit" class="audit-lines"><span class="empty">Loading…</span></div>
+      </details>
     </div>
   </div>
   <div id="toast" class="toast" role="status"></div>
@@ -404,6 +468,7 @@ if ($embedNeedsPublicBase) {
       document.getElementById('layout_key').value = 'segmented_pills';
       document.getElementById('btn-create').textContent = 'Create timer';
       document.getElementById('btn-cancel-edit').style.display = 'none';
+      document.getElementById('appearance').open = false;
       editingId = null;
       applyPlanGates();
     }
@@ -421,9 +486,11 @@ if ($embedNeedsPublicBase) {
       document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
       document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
       document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
+      document.getElementById('appearance').open = true;
       document.getElementById('btn-create').textContent = 'Save changes';
       document.getElementById('btn-cancel-edit').style.display = 'inline-block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      applyPlanGates();
     }
 
     function applyPlanGates() {
@@ -465,11 +532,11 @@ if ($embedNeedsPublicBase) {
         if (!entitlements) return;
         const title = document.getElementById('billing-title');
         const kpis = document.getElementById('billing-kpis');
-        title.textContent = 'Plan: ' + (entitlements.plan_name || entitlements.plan_key || 'Unknown');
+        title.textContent = entitlements.plan_name || entitlements.plan_key || 'Unknown plan';
         kpis.innerHTML =
           '<span>Timers <strong>' + Number(entitlements.timer_count || 0) + ' / ' + Number(entitlements.max_timers || 0) + '</strong></span>' +
-          '<span>Layouts <strong>' + (entitlements.allow_premium_layouts ? 'All' : 'Core only') + '</strong></span>' +
-          '<span>Fonts <strong>' + (entitlements.allow_premium_fonts ? 'All' : 'Core only') + '</strong></span>';
+          '<span>Layouts <strong>' + (entitlements.allow_premium_layouts ? 'All' : 'Core') + '</strong></span>' +
+          '<span>Fonts <strong>' + (entitlements.allow_premium_fonts ? 'All' : 'Core') + '</strong></span>';
         applyPlanGates();
       } catch (e) {}
     }
@@ -515,7 +582,7 @@ if ($embedNeedsPublicBase) {
         applyPlanGates();
         if (!j.timers || !j.timers.length) {
           currentTimers = [];
-          list.innerHTML = '<p class="empty">No timers yet. Create one above.</p>';
+          list.innerHTML = '<div class="empty-state"><strong>No timers yet</strong>Create one above, then copy the HTML into your ESP.</div>';
           return;
         }
         currentTimers = j.timers;
@@ -524,19 +591,27 @@ if ($embedNeedsPublicBase) {
           const card = document.createElement('div');
           card.className = 'timer-card';
           const ends = new Date(t.ends_at * 1000);
+          const endsLabel = ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+          const httpsAttrs = EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"';
           card.innerHTML =
-            '<h3>' + escapeHtml(t.name) + '</h3>' +
-            '<div class="meta">Ends (UTC): ' + ends.toISOString().replace('T', ' ').slice(0, 19) + 'Z · id ' + escapeHtml(t.id.slice(0, 8)) + '… · ' + escapeHtml(t.font_key || 'noto_sans_bold') + ' · ' + Number(t.font_size_main || 32) + 'px · ' + escapeHtml(t.layout_key || 'segmented_pills') + '</div>' +
+            '<div class="timer-card-head">' +
+            '<div><h3>' + escapeHtml(t.name) + '</h3>' +
+            '<div class="meta"><span>Ends ' + endsLabel + '</span><span>' + Number(t.width) + '×' + Number(t.height) + '</span><span>' + escapeHtml(t.layout_key || 'segmented_pills') + '</span></div></div>' +
+            '</div>' +
             '<div class="preview"></div>' +
-            '<div class="embed" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width, t.height, t.ends_at)) + '</div>' +
-            '<div class="row-actions">' +
-            '<button type="button" class="secondary btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '"' + (EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"') + '>Copy Gmail HTML</button>' +
-            '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + (EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"') + '>Copy Dynamic HTML</button>' +
-            '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + (EMBED_HTTPS_OK ? '' : ' disabled title="Requires https public_base_url"') + '>Copy PNG URL</button>' +
+            '<div class="actions-primary">' +
+            '<button type="button" class="btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '"' + httpsAttrs + '>Copy for Gmail</button>' +
             '<button type="button" class="secondary btn-edit" data-id="' + escapeHtml(t.id) + '">Edit</button>' +
-            '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button></div>';
+            '</div>' +
+            '<div class="actions-secondary">' +
+            '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + httpsAttrs + '>Copy Dynamic HTML</button>' +
+            '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + httpsAttrs + '>Copy PNG URL</button>' +
+            '<button type="button" class="secondary btn-toggle-embed" data-id="' + escapeHtml(t.id) + '">Show HTML</button>' +
+            '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button>' +
+            '</div>' +
+            '<div class="embed" id="embed-' + escapeHtml(t.id) + '" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width, t.height, t.ends_at)) + '</div>';
           const img = document.createElement('img');
-          img.alt = 'Preview';
+          img.alt = 'Preview of ' + (t.name || 'timer');
           img.loading = 'lazy';
           img.src = TIMER_PREVIEW_PREFIX + encodeURIComponent(t.id) + '&_=' + Date.now();
           card.querySelector('.preview').appendChild(img);
@@ -549,7 +624,7 @@ if ($embedNeedsPublicBase) {
             const width = parseInt(btn.getAttribute('data-width') || '480', 10);
             const height = parseInt(btn.getAttribute('data-height') || '120', 10);
             const ends = parseInt(btn.getAttribute('data-ends') || '0', 10);
-            navigator.clipboard.writeText(embedHtml(id, width, height, ends)).then(() => toast('Copied Gmail HTML'));
+            navigator.clipboard.writeText(embedHtml(id, width, height, ends)).then(() => toast('Copied — paste into your ESP'));
           });
         });
         list.querySelectorAll('.btn-copy-dynamic').forEach(btn => {
@@ -568,6 +643,15 @@ if ($embedNeedsPublicBase) {
             if (!requireHttpsEmbed()) return;
             const id = btn.getAttribute('data-id');
             navigator.clipboard.writeText(pngFallbackUrl(id)).then(() => toast('Copied PNG URL'));
+          });
+        });
+        list.querySelectorAll('.btn-toggle-embed').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const el = document.getElementById('embed-' + id);
+            if (!el) return;
+            const open = el.classList.toggle('show');
+            btn.textContent = open ? 'Hide HTML' : 'Show HTML';
           });
         });
         list.querySelectorAll('.btn-del').forEach(btn => {
@@ -590,6 +674,7 @@ if ($embedNeedsPublicBase) {
             toast('Deleted');
             loadList();
             loadAudit();
+            loadBilling();
           });
         });
         list.querySelectorAll('.btn-edit').forEach(btn => {
@@ -644,10 +729,12 @@ if ($embedNeedsPublicBase) {
         }
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Save failed');
-        toast(editingId ? 'Timer updated' : 'Timer created');
+        toast(editingId ? 'Timer updated' : 'Timer created — copy HTML below');
         resetCreateForm();
         loadList();
         loadAudit();
+        loadBilling();
+        document.getElementById('list').scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) {
         toast(err.message || 'Error');
       }
