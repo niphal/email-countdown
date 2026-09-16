@@ -23,139 +23,163 @@ if ($embedNeedsPublicBase) {
 $appNav = 'dashboard';
 $appTitle = 'Dashboard';
 $appSubtitle = 'Create countdown timers, preview them, then copy Gmail-safe HTML.';
-$appTopActions = '<a class="btn secondary" href="templates.php">Templates</a>';
+$appTopActions = '<a class="btn btn-outline btn-sm" href="templates.php">Templates</a>';
 require __DIR__ . '/include/app_shell_start.php';
 ?>
-    <ol class="steps" aria-label="How to use">
-      <li><strong>1</strong> Create</li>
-      <li><strong>2</strong> Preview</li>
-      <li><strong>3</strong> Copy for email</li>
-    </ol>
+    <ul class="steps steps-horizontal w-full max-w-xl mb-2" aria-label="How to use">
+      <li class="step step-primary">Create</li>
+      <li class="step step-primary">Preview</li>
+      <li class="step">Copy for email</li>
+    </ul>
 
     <?php if ($embedBlockedReason === 'root-relative'): ?>
-    <div class="alert" role="alert"><strong>Gmail will not load these images yet.</strong> Embed URLs are still root-relative. Add <code>'public_base_url' =&gt; 'https://your-public-site'</code> to <code>data/secrets.php</code> (no trailing slash), or open this dashboard on your public HTTPS URL.</div>
+    <div role="alert" class="alert alert-error shadow-sm">
+      <span><strong>Gmail will not load these images yet.</strong> Embed URLs are still root-relative. Add <code class="bg-base-100 px-1 rounded">public_base_url</code> as an absolute HTTPS origin in <code class="bg-base-100 px-1 rounded">data/secrets.php</code>.</span>
+    </div>
     <?php elseif ($embedBlockedReason === 'not-https'): ?>
-    <div class="alert" role="alert"><strong>Gmail requires HTTPS image URLs.</strong> Set <code>'public_base_url' =&gt; 'https://…'</code> in <code>data/secrets.php</code>. Copy is disabled until that is fixed.</div>
+    <div role="alert" class="alert alert-error shadow-sm">
+      <span><strong>Gmail requires HTTPS image URLs.</strong> Set <code class="bg-base-100 px-1 rounded">public_base_url</code> to <code class="bg-base-100 px-1 rounded">https://…</code> in secrets.</span>
+    </div>
     <?php endif; ?>
 
-    <div class="status-bar" id="billing-box">
-      <div>
-        <div id="billing-title" class="plan-name">Plan: Loading…</div>
-        <div id="billing-kpis" class="billing-kpis"></div>
+    <div class="card bg-base-100 shadow-sm border border-base-300" id="billing-box">
+      <div class="card-body flex-row flex-wrap items-center justify-between gap-4 py-5">
+        <div>
+          <div id="billing-title" class="font-bold text-base">Plan: Loading…</div>
+          <div id="billing-kpis" class="billing-kpis"></div>
+        </div>
+        <button type="button" id="btn-upgrade" class="btn btn-outline btn-sm">Upgrade</button>
       </div>
-      <button type="button" id="btn-upgrade" class="secondary">Upgrade</button>
     </div>
 
     <div class="grid-dash grid-dash-2">
-      <div class="card">
-        <div class="card-head">
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body gap-5">
           <div>
-            <h2>Create timer</h2>
-            <p class="card-lead">Name it, set when it ends, then create. Open Appearance for colors, size, or layout.</p>
+            <h2 class="card-title text-lg">Create timer</h2>
+            <p class="text-sm text-base-content/60 mt-1">Name it, set when it ends, then create. Open Appearance for colors, size, or layout.</p>
           </div>
-        </div>
-        <form id="create-form">
-          <div class="grid grid-2">
-            <div>
-              <label for="template_id">Brand template</label>
-              <select id="template_id" name="template_id">
-                <option value="">Custom appearance</option>
-              </select>
-              <p class="field-hint"><a href="templates.php">Manage templates</a></p>
+          <form id="create-form" class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <fieldset class="fieldset p-0">
+                <label class="label" for="template_id"><span class="label-text font-semibold">Brand template</span></label>
+                <select id="template_id" name="template_id" class="select select-bordered w-full">
+                  <option value="">Custom appearance</option>
+                </select>
+                <p class="label"><span class="label-text-alt"><a class="link link-primary" href="templates.php">Manage templates</a></span></p>
+              </fieldset>
+              <fieldset class="fieldset p-0">
+                <label class="label" for="name"><span class="label-text font-semibold">Internal name</span></label>
+                <input type="text" id="name" name="name" required placeholder="Spring sale ends" autocomplete="off" class="input input-bordered w-full">
+                <p class="label"><span class="label-text-alt">Only shown in this dashboard</span></p>
+              </fieldset>
+              <fieldset class="fieldset p-0">
+                <label class="label" for="ends"><span class="label-text font-semibold">Ends at (your local time)</span></label>
+                <input type="datetime-local" id="ends" name="ends" required class="input input-bordered w-full">
+                <p class="label"><span class="label-text-alt">Stored and shown in email as UTC</span></p>
+              </fieldset>
+              <fieldset class="fieldset p-0">
+                <label class="label" for="label"><span class="label-text font-semibold">Optional line under countdown</span></label>
+                <input type="text" id="label" name="label" placeholder="Use code SAVE20" autocomplete="off" class="input input-bordered w-full">
+              </fieldset>
             </div>
-            <div>
-              <label for="name">Internal name</label>
-              <input type="text" id="name" name="name" required placeholder="Spring sale ends" autocomplete="off">
-              <p class="field-hint">Only shown in this dashboard</p>
+
+            <div class="collapse collapse-arrow bg-base-200/60 border border-base-300 rounded-box" id="appearance-wrap">
+              <input type="checkbox" id="appearance-toggle" />
+              <div class="collapse-title font-semibold text-sm">Appearance</div>
+              <div class="collapse-content">
+                <div id="appearance" class="grid gap-4 sm:grid-cols-2 pt-1">
+                  <div class="grid grid-cols-3 gap-3 sm:col-span-2">
+                    <fieldset class="fieldset p-0">
+                      <label class="label" for="bg"><span class="label-text">Background</span></label>
+                      <input type="color" id="bg" value="#1a1a2e" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1">
+                    </fieldset>
+                    <fieldset class="fieldset p-0">
+                      <label class="label" for="fg"><span class="label-text">Text</span></label>
+                      <input type="color" id="fg" value="#eaeaea" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1">
+                    </fieldset>
+                    <fieldset class="fieldset p-0">
+                      <label class="label" for="ac"><span class="label-text">Countdown</span></label>
+                      <input type="color" id="ac" value="#e94560" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1">
+                    </fieldset>
+                  </div>
+                  <fieldset class="fieldset p-0">
+                    <label class="label" for="width"><span class="label-text font-semibold">Width (px)</span></label>
+                    <input type="number" id="width" value="480" min="200" max="600" step="10" class="input input-bordered w-full">
+                    <p class="label"><span class="label-text-alt">480–560 for mobile Gmail</span></p>
+                  </fieldset>
+                  <fieldset class="fieldset p-0">
+                    <label class="label" for="height"><span class="label-text font-semibold">Height (px)</span></label>
+                    <input type="number" id="height" value="120" min="80" max="300" step="10" class="input input-bordered w-full">
+                  </fieldset>
+                  <fieldset class="fieldset p-0">
+                    <label class="label" for="layout_key"><span class="label-text font-semibold">Layout</span></label>
+                    <select id="layout_key" name="layout_key" class="select select-bordered w-full">
+                      <?php foreach (timer_layout_labels() as $val => $lab): ?>
+                      <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </fieldset>
+                  <fieldset class="fieldset p-0">
+                    <label class="label" for="font_key"><span class="label-text font-semibold">Font</span></label>
+                    <select id="font_key" name="font_key" class="select select-bordered w-full">
+                      <?php foreach (timer_font_labels() as $val => $lab): ?>
+                      <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </fieldset>
+                  <fieldset class="fieldset p-0">
+                    <label class="label" for="font_size_main"><span class="label-text font-semibold">Main size (px)</span></label>
+                    <input type="number" id="font_size_main" value="32" min="14" max="72" step="1" class="input input-bordered w-full">
+                  </fieldset>
+                </div>
+              </div>
             </div>
-            <div>
-              <label for="ends">Ends at (your local time)</label>
-              <input type="datetime-local" id="ends" name="ends" required>
-              <p class="field-hint">Stored and shown in email as UTC</p>
-            </div>
-            <div>
-              <label for="label">Optional line under countdown</label>
-              <input type="text" id="label" name="label" placeholder="Use code SAVE20" autocomplete="off">
-            </div>
+          </form>
+          <div class="card-actions justify-start gap-2 pt-1">
+            <button type="submit" form="create-form" id="btn-create" class="btn btn-primary">Create timer</button>
+            <button type="button" id="btn-cancel-edit" class="btn btn-ghost" style="display:none;">Cancel edit</button>
           </div>
-          <details class="appearance" id="appearance">
-            <summary>Appearance</summary>
-            <div class="grid grid-2">
-              <div class="grid grid-3" style="grid-column:1 / -1;">
-                <div><label for="bg">Background</label><input type="color" id="bg" value="#1a1a2e"></div>
-                <div><label for="fg">Text</label><input type="color" id="fg" value="#eaeaea"></div>
-                <div><label for="ac">Countdown</label><input type="color" id="ac" value="#e94560"></div>
-              </div>
-              <div>
-                <label for="width">Width (px)</label>
-                <input type="number" id="width" value="480" min="200" max="600" step="10">
-                <p class="field-hint">480–560 for mobile Gmail</p>
-              </div>
-              <div>
-                <label for="height">Height (px)</label>
-                <input type="number" id="height" value="120" min="80" max="300" step="10">
-              </div>
-              <div>
-                <label for="layout_key">Layout</label>
-                <select id="layout_key" name="layout_key">
-                <?php foreach (timer_layout_labels() as $val => $lab): ?>
-                <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-                <?php endforeach; ?>
-                              </select>
-              </div>
-              <div>
-                <label for="font_key">Font</label>
-                <select id="font_key" name="font_key">
-                <?php foreach (timer_font_labels() as $val => $lab): ?>
-                <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-                <?php endforeach; ?>
-                              </select>
-              </div>
-              <div>
-                <label for="font_size_main">Main size (px)</label>
-                <input type="number" id="font_size_main" value="32" min="14" max="72" step="1">
-              </div>
-            </div>
-          </details>
-        </form>
-        <div class="row-actions">
-          <button type="submit" form="create-form" id="btn-create">Create timer</button>
-          <button type="button" id="btn-cancel-edit" class="secondary" style="display:none;">Cancel edit</button>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-head">
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body gap-4">
           <div>
-            <h2>Tips &amp; activity</h2>
-            <p class="card-lead">Gmail notes and recent workspace changes.</p>
+            <h2 class="card-title text-lg">Tips &amp; activity</h2>
+            <p class="text-sm text-base-content/60 mt-1">Gmail notes and recent workspace changes.</p>
+          </div>
+          <div class="collapse collapse-arrow border border-base-300 bg-base-200/40 rounded-box">
+            <input type="checkbox" checked />
+            <div class="collapse-title font-semibold text-sm">Gmail &amp; ESP tips</div>
+            <div class="collapse-content text-sm text-base-content/70 leading-relaxed">
+              Use <strong>Copy for Gmail</strong>. Image URLs need absolute HTTPS via <code class="bg-base-100 px-1 rounded">public_base_url</code>.
+              Connect Braze under <strong>Integrations</strong>, then <strong>Push to Braze</strong> or <strong>Copy Braze Liquid</strong>.
+            </div>
+          </div>
+          <div class="collapse collapse-arrow border border-base-300 bg-base-200/40 rounded-box">
+            <input type="checkbox" />
+            <div class="collapse-title font-semibold text-sm">Workspace activity</div>
+            <div class="collapse-content">
+              <p class="text-sm text-base-content/60 mb-2">Recent changes in this workspace.</p>
+              <div id="audit" class="audit-lines"><span class="text-base-content/50">Loading…</span></div>
+            </div>
           </div>
         </div>
-        <details class="help-block" open>
-          <summary>Gmail &amp; ESP tips</summary>
-          <p class="note">
-            Use <strong>Copy for Gmail</strong>. Image URLs need absolute HTTPS via <code>public_base_url</code>.
-            Connect Braze under <strong>Integrations</strong>, then <strong>Push to Braze</strong> or <strong>Copy Braze Liquid</strong>.
-          </p>
-        </details>
-        <details class="help-block" style="margin-top:0.85rem">
-          <summary>Workspace activity</summary>
-          <p class="note" style="margin-top:0.5rem;">Recent changes in this workspace.</p>
-          <div id="audit" class="audit-lines"><span class="empty">Loading…</span></div>
-        </details>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
+    <div class="card bg-base-100 shadow-sm border border-base-300">
+      <div class="card-body gap-4">
         <div>
-          <h2>Your timers</h2>
-          <p class="card-lead">Preview first, then copy HTML for your ESP.</p>
+          <h2 class="card-title text-lg">Your timers</h2>
+          <p class="text-sm text-base-content/60 mt-1">Preview first, then copy HTML for your ESP.</p>
         </div>
+        <div id="list"><p class="text-base-content/50">Loading…</p></div>
       </div>
-      <div id="list"><p class="empty">Loading…</p></div>
     </div>
-  <div id="toast" class="toast" role="status"></div>
+
+  <div id="toast" class="toast-app" role="status"></div>
 
   <script>
     const API = 'api/timers.php';
@@ -188,7 +212,12 @@ require __DIR__ . '/include/app_shell_start.php';
       if (!document.getElementById('label').value.trim() && t.default_label) {
         document.getElementById('label').value = t.default_label;
       }
-      document.getElementById('appearance').open = true;
+      setAppearanceOpen(true);
+    }
+
+    function setAppearanceOpen(open) {
+      const toggle = document.getElementById('appearance-toggle');
+      if (toggle) toggle.checked = !!open;
     }
 
     async function loadTemplatesForForm() {
@@ -325,7 +354,7 @@ require __DIR__ . '/include/app_shell_start.php';
       document.getElementById('layout_key').value = 'segmented_pills';
       document.getElementById('btn-create').textContent = 'Create timer';
       document.getElementById('btn-cancel-edit').style.display = 'none';
-      document.getElementById('appearance').open = false;
+      setAppearanceOpen(false);
       editingId = null;
       applyPlanGates();
     }
@@ -343,9 +372,9 @@ require __DIR__ . '/include/app_shell_start.php';
       document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
       document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
       document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
-      document.getElementById('appearance').open = true;
+      setAppearanceOpen(true);
       document.getElementById('btn-create').textContent = 'Save changes';
-      document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+      document.getElementById('btn-cancel-edit').style.display = '';
       window.scrollTo({ top: 0, behavior: 'smooth' });
       applyPlanGates();
     }
@@ -403,13 +432,13 @@ require __DIR__ . '/include/app_shell_start.php';
       try {
         const r = await fetch(AUDIT_API + '?limit=40', { credentials: 'same-origin' });
         if (!r.ok) {
-          el.innerHTML = '<span class="empty">Audit unavailable (sign in again or upgrade database).</span>';
+          el.innerHTML = '<span class="text-base-content/50">Audit unavailable (sign in again or upgrade database).</span>';
           return;
         }
         const j = await r.json();
         const rows = j.entries || [];
         if (!rows.length) {
-          el.innerHTML = '<span class="empty">No activity yet.</span>';
+          el.innerHTML = '<span class="text-base-content/50">No activity yet.</span>';
           return;
         }
         el.innerHTML = rows.map(row => {
@@ -418,7 +447,7 @@ require __DIR__ . '/include/app_shell_start.php';
           return '<div>' + escapeHtml(ts) + ' · ' + escapeHtml(row.action || '') + ' · ' + escapeHtml(row.entity_type || '') + ' ' + escapeHtml(String(row.entity_id || '').slice(0, 12)) + '...</div>';
         }).join('');
       } catch (e) {
-        el.innerHTML = '<span class="empty">Could not load audit log.</span>';
+        el.innerHTML = '<span class="text-base-content/50">Could not load audit log.</span>';
       }
     }
 
@@ -439,7 +468,7 @@ require __DIR__ . '/include/app_shell_start.php';
         applyPlanGates();
         if (!j.timers || !j.timers.length) {
           currentTimers = [];
-          list.innerHTML = '<div class="empty-state"><strong>No timers yet</strong>Create one above, then copy the HTML into your ESP.</div>';
+          list.innerHTML = '<div class="empty-panel"><p class="empty-title">No timers yet</p><p class="empty-sub">Create one above, then copy the HTML into your ESP.</p></div>';
           return;
         }
         currentTimers = j.timers;
@@ -453,20 +482,20 @@ require __DIR__ . '/include/app_shell_start.php';
           card.innerHTML =
             '<div class="timer-card-head">' +
             '<div><h3>' + escapeHtml(t.name) + '</h3>' +
-            '<div class="meta"><span>Ends ' + endsLabel + '</span><span>' + Number(t.width) + 'Ã—' + Number(t.height) + '</span><span>' + escapeHtml(t.layout_key || 'segmented_pills') + '</span></div></div>' +
+            '<div class="meta"><span>Ends ' + endsLabel + '</span><span>' + Number(t.width) + '\u00d7' + Number(t.height) + '</span><span>' + escapeHtml(t.layout_key || 'segmented_pills') + '</span></div></div>' +
             '</div>' +
             '<div class="preview"></div>' +
             '<div class="actions-primary">' +
-            '<button type="button" class="btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '"' + httpsAttrs + '>Copy for Gmail</button>' +
-            '<button type="button" class="secondary btn-edit" data-id="' + escapeHtml(t.id) + '">Edit</button>' +
+            '<button type="button" class="btn btn-primary btn-sm btn-copy" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '"' + httpsAttrs + '>Copy for Gmail</button>' +
+            '<button type="button" class="btn btn-outline btn-sm btn-edit" data-id="' + escapeHtml(t.id) + '">Edit</button>' +
             '</div>' +
             '<div class="actions-secondary">' +
-            '<button type="button" class="secondary btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + httpsAttrs + '>Copy Dynamic HTML</button>' +
-            '<button type="button" class="secondary btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + httpsAttrs + '>Copy PNG countdown</button>' +
-            '<button type="button" class="secondary btn-braze-push" data-id="' + escapeHtml(t.id) + '"' + (brazeConnected && EMBED_HTTPS_OK ? '' : ' disabled title="' + (brazeConnected ? 'Requires https public_base_url' : 'Connect Braze in Integrations') + '"') + '>Push to Braze</button>' +
-            '<button type="button" class="secondary btn-braze-cc" data-id="' + escapeHtml(t.id) + '"' + (brazeConnected ? '' : ' disabled title="Connect Braze in Integrations"') + '>Copy Braze Liquid</button>' +
-            '<button type="button" class="secondary btn-toggle-embed" data-id="' + escapeHtml(t.id) + '">Show HTML</button>' +
-            '<button type="button" class="danger btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm btn-copy-dynamic" data-id="' + escapeHtml(t.id) + '" data-width="' + Number(t.width) + '" data-height="' + Number(t.height) + '" data-ends="' + Number(t.ends_at) + '" data-sig="' + escapeHtml(t.dynamic_sig || '') + '"' + httpsAttrs + '>Copy Dynamic HTML</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm btn-copy-png" data-id="' + escapeHtml(t.id) + '"' + httpsAttrs + '>Copy PNG countdown</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm btn-braze-push" data-id="' + escapeHtml(t.id) + '"' + (brazeConnected && EMBED_HTTPS_OK ? '' : ' disabled title="' + (brazeConnected ? 'Requires https public_base_url' : 'Connect Braze in Integrations') + '"') + '>Push to Braze</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm btn-braze-cc" data-id="' + escapeHtml(t.id) + '"' + (brazeConnected ? '' : ' disabled title="Connect Braze in Integrations"') + '>Copy Braze Liquid</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm btn-toggle-embed" data-id="' + escapeHtml(t.id) + '">Show HTML</button>' +
+            '<button type="button" class="btn btn-error btn-outline btn-sm btn-del" data-id="' + escapeHtml(t.id) + '">Delete</button>' +
             '</div>' +
             '<div class="embed" id="embed-' + escapeHtml(t.id) + '" tabindex="0">' + escapeHtml(embedHtml(t.id, t.width, t.height, t.ends_at)) + '</div>';
           const img = document.createElement('img');

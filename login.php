@@ -43,59 +43,62 @@ $csrf = auth_csrf_token();
 $next = auth_redirect_target($_GET['next'] ?? null);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bitview">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="include/app.css">
   <style>
-    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --bad:#b91c1c; --ok:#2e7d32; --ring:rgba(0,66,37,.18); }
-    * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-      font-family:var(--font-body); background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color:var(--text); padding:1rem; }
-    .card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.65rem; box-shadow:0 10px 28px rgba(17,24,39,.08); }
-    h1 { font-family:var(--font-display); font-size:1.35rem; margin:0 0 0.35rem; font-weight:700; letter-spacing:-.01em; }
-    label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.4rem; font-weight:600; }
-    input[type="email"], input[type="password"] { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border);
-      background:#ffffff; color:var(--text); font-size:1rem; margin-bottom:1rem; }
-    input[type="email"]:focus, input[type="password"]:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--ring); outline:none; }
-    button { font-family:var(--font-ui); width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer;
-      background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; transition:transform .12s ease, box-shadow .12s ease; }
-    button:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,66,37,.2); }
-    .err { color:var(--bad); font-size:0.88rem; margin-bottom:0.75rem; }
-    .hint { font-size:0.82rem; color:var(--muted); margin-top:1rem; line-height:1.45; }
-    .ok { color:var(--ok); font-size:0.88rem; margin-bottom:0.75rem; }
-    .menu { display:flex; gap:.45rem; flex-wrap:wrap; margin:0 0 1rem; }
-    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.34rem .68rem; font-size:.78rem; font-weight:600; }
-    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
-    .hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
-    .hint a:hover { text-decoration: underline; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37, 99, 235, 0.18), transparent),
+        oklch(96% 0.005 250);
+    }
   </style>
 </head>
-<body>
-  <div class="card">
-    <div class="menu">
-      <a href="login.php" class="active">Sign in</a>
-      <a href="signup.php">Sign up</a>
-      <a href="forgot_password.php">Forgot password</a>
+<body class="text-base-content">
+  <div class="card w-full max-w-md bg-base-100 shadow-md border border-base-300">
+    <div class="card-body gap-5">
+      <div class="flex flex-wrap gap-2">
+        <a href="login.php" class="btn btn-sm btn-primary">Sign in</a>
+        <a href="signup.php" class="btn btn-sm btn-ghost">Sign up</a>
+        <a href="forgot_password.php" class="btn btn-sm btn-ghost">Forgot password</a>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight" style="font-family:var(--font-display)">Sign in</h1>
+        <p class="text-sm text-base-content/60 mt-1">Access your workspace to create countdown timers for email.</p>
+      </div>
+      <?php if ($installedBanner): ?><div role="alert" class="alert alert-success text-sm py-3">Installation finished. Sign in with the password you chose.</div><?php endif; ?>
+      <?php if ($emailVerifiedBanner): ?><div role="alert" class="alert alert-success text-sm py-3">Email verified. You can sign in now.</div><?php endif; ?>
+      <?php if ($error !== ''): ?><div role="alert" class="alert alert-error text-sm py-3"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+      <form method="post" action="login.php" class="space-y-4">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="next" value="<?= htmlspecialchars($next, ENT_QUOTES, 'UTF-8') ?>">
+        <fieldset class="fieldset p-0">
+          <label class="label" for="email"><span class="label-text font-semibold">Work email</span></label>
+          <input type="email" id="email" name="email" required autocomplete="username" class="input input-bordered w-full" value="<?= htmlspecialchars(platform_seed_owner_email(), ENT_QUOTES, 'UTF-8') ?>">
+        </fieldset>
+        <fieldset class="fieldset p-0">
+          <label class="label" for="password"><span class="label-text font-semibold">Password</span></label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" autofocus class="input input-bordered w-full">
+        </fieldset>
+        <button type="submit" class="btn btn-primary w-full">Sign in</button>
+      </form>
+      <p class="text-sm text-base-content/60 m-0">
+        <a class="link link-primary" href="forgot_password.php">Forgot password?</a>
+        ·
+        <a class="link link-primary" href="resend_verification.php">Resend verification</a>
+      </p>
+      <p class="text-sm text-base-content/60 m-0"><a class="link link-primary" href="signup.php">Need an account? Sign up</a></p>
     </div>
-    <h1>Sign in</h1>
-    <p class="hint" style="margin-top:-0.35rem;margin-bottom:1rem;">Access your workspace to create countdown timers for email.</p>
-    <?php if ($installedBanner): ?><p class="ok">Installation finished. Sign in with the password you chose.</p><?php endif; ?>
-    <?php if ($emailVerifiedBanner): ?><p class="ok">Email verified. You can sign in now.</p><?php endif; ?>
-    <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
-    <form method="post" action="login.php">
-      <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-      <input type="hidden" name="next" value="<?= htmlspecialchars($next, ENT_QUOTES, 'UTF-8') ?>">
-      <label for="email">Work email</label>
-      <input type="email" id="email" name="email" required autocomplete="username" value="<?= htmlspecialchars(platform_seed_owner_email(), ENT_QUOTES, 'UTF-8') ?>">
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
-      <button type="submit">Sign in</button>
-    </form>
-    <p class="hint" style="margin-top:0.75rem;"><a href="forgot_password.php">Forgot password?</a> · <a href="resend_verification.php">Resend verification</a></p>
-    <p class="hint" style="margin-top:0.35rem;"><a href="signup.php">Need an account? Sign up</a></p>
   </div>
 </body>
 </html>

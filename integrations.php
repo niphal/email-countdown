@@ -13,74 +13,97 @@ $appTitle = 'Integrations';
 $appSubtitle = 'Connect Braze to push Content Blocks and use Connected Content.';
 require __DIR__ . '/include/app_shell_start.php';
 ?>
-<style>
-  .status { display:inline-flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600; padding:.3rem .65rem; border-radius:999px; border:1px solid var(--border); background:#fafbfc; }
-  .status.on { border-color:#b7d7c4; background:var(--accent-soft); color:var(--accent); }
-  .steps-list { margin:.4rem 0 0; padding-left:1.15rem; color:var(--muted); font-size:.86rem; line-height:1.55; }
-</style>
-<div class="card">
-      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center">
-        <h2 style="margin:0">Braze</h2>
-        <span id="braze-status" class="status off">Not connected</span>
-      </div>
-      <p class="card-lead">Connect your Braze REST API so you can push countdown timers into Braze as <strong>Content Blocks</strong> (insert from the Braze editor) and use <strong>Connected Content</strong> for live HTML at send time.</p>
-
-      <div id="https-warning" class="alert" style="display:none">Set <code>public_base_url</code> to an absolute <code>https://</code> origin in <code>data/secrets.php</code> before pushing image URLs to Braze / Gmail.</div>
-      <div id="msg" style="display:none"></div>
-
-      <div class="grid grid-2">
-        <div>
-          <label for="rest_endpoint">Braze REST endpoint</label>
-          <select id="rest_endpoint"></select>
+    <div class="card bg-base-100 shadow-sm border border-base-300">
+      <div class="card-body gap-5">
+        <div class="flex justify-between gap-4 flex-wrap items-center">
+          <div>
+            <h2 class="card-title text-lg">Braze</h2>
+            <p class="text-sm text-base-content/60 mt-1 max-w-2xl">Connect your Braze REST API so you can push countdown timers as <strong>Content Blocks</strong> and use <strong>Connected Content</strong> for live HTML at send time.</p>
+          </div>
+          <span id="braze-status" class="badge badge-ghost badge-lg border border-base-300">Not connected</span>
         </div>
+
+        <div id="https-warning" role="alert" class="alert alert-warning shadow-sm" style="display:none">
+          <span>Set <code class="bg-base-100 px-1 rounded">public_base_url</code> to an absolute <code class="bg-base-100 px-1 rounded">https://</code> origin in <code class="bg-base-100 px-1 rounded">data/secrets.php</code> before pushing image URLs to Braze / Gmail.</span>
+        </div>
+        <div id="msg" style="display:none" role="status"></div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <fieldset class="fieldset p-0">
+            <label class="label" for="rest_endpoint"><span class="label-text font-semibold">Braze REST endpoint</span></label>
+            <select id="rest_endpoint" class="select select-bordered w-full"></select>
+          </fieldset>
+          <fieldset class="fieldset p-0">
+            <label class="label" for="api_key"><span class="label-text font-semibold">REST API key</span></label>
+            <input id="api_key" type="password" autocomplete="off" placeholder="Paste key (needs content_blocks.create + update + list)" class="input input-bordered w-full">
+            <p class="label"><span class="label-text-alt" id="api-hint"></span></p>
+          </fieldset>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="btn-save" class="btn btn-primary">Connect Braze</button>
+          <button type="button" id="btn-test" class="btn btn-outline" style="display:none">Test connection</button>
+          <button type="button" id="btn-rotate" class="btn btn-ghost" style="display:none">Rotate Connected Content token</button>
+          <button type="button" id="btn-disconnect" class="btn btn-error btn-outline" style="display:none">Disconnect</button>
+        </div>
+
+        <p class="text-sm text-base-content/60 leading-relaxed m-0">Create the key in Braze → Settings → APIs and Identifiers. Permissions: <code class="bg-base-200 px-1 rounded">content_blocks.create</code>, <code class="bg-base-200 px-1 rounded">content_blocks.update</code>, <code class="bg-base-200 px-1 rounded">content_blocks.list</code>.</p>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-sm border border-base-300" id="cc-panel" style="display:none">
+      <div class="card-body gap-4">
         <div>
-          <label for="api_key">REST API key</label>
-          <input id="api_key" type="password" autocomplete="off" placeholder="Paste key (needs content_blocks.create + update + list)">
-          <p class="muted" id="api-hint" style="margin:.35rem 0 0"></p>
+          <h2 class="card-title text-lg">Connected Content</h2>
+          <p class="text-sm text-base-content/60 mt-1">Braze calls this URL at send time and inserts the returned HTML. Keep the token secret.</p>
+        </div>
+        <fieldset class="fieldset p-0">
+          <label class="label"><span class="label-text font-semibold">Endpoint</span></label>
+          <div class="token-box" id="cc-url"></div>
+        </fieldset>
+        <fieldset class="fieldset p-0">
+          <label class="label"><span class="label-text font-semibold">Token hint</span></label>
+          <p class="text-sm text-base-content/60 m-0" id="cc-hint"></p>
+        </fieldset>
+        <div id="cc-token-once" style="display:none">
+          <div role="alert" class="alert alert-success shadow-sm">
+            <div>
+              <strong>New token (copy now):</strong>
+              <div class="token-box mt-2 mb-0" id="cc-token-value"></div>
+            </div>
+          </div>
+        </div>
+        <fieldset class="fieldset p-0">
+          <label class="label" for="cc-example"><span class="label-text font-semibold">Example Liquid</span></label>
+          <textarea id="cc-example" readonly class="textarea textarea-bordered w-full font-mono text-xs min-h-28"></textarea>
+        </fieldset>
+        <div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-copy-cc">Copy example Liquid</button>
         </div>
       </div>
-      <div class="row">
-        <button type="button" id="btn-save">Connect Braze</button>
-        <button type="button" id="btn-test" class="secondary" style="display:none">Test connection</button>
-        <button type="button" id="btn-rotate" class="secondary" style="display:none">Rotate Connected Content token</button>
-        <button type="button" id="btn-disconnect" class="danger" style="display:none">Disconnect</button>
-      </div>
-      <p class="muted" style="margin-top:.85rem">Create the key in Braze â†’ Settings â†’ APIs and Identifiers. Permissions: <code>content_blocks.create</code>, <code>content_blocks.update</code>, <code>content_blocks.list</code>.</p>
     </div>
 
-    <div class="card" id="cc-panel" style="display:none">
-      <h2>Connected Content</h2>
-      <p class="card-lead">Braze calls this URL at send time and inserts the returned HTML. Keep the token secret.</p>
-      <label>Endpoint</label>
-      <div class="token-box" id="cc-url"></div>
-      <label>Token hint</label>
-      <p class="muted" id="cc-hint" style="margin:.2rem 0 .8rem"></p>
-      <div id="cc-token-once" style="display:none">
-        <div class="ok-banner"><strong>New token (copy now):</strong><div class="token-box" id="cc-token-value"></div></div>
-      </div>
-      <label>Example Liquid</label>
-      <textarea id="cc-example" readonly></textarea>
-      <div class="row">
-        <button type="button" class="secondary" id="btn-copy-cc">Copy example Liquid</button>
+    <div class="card bg-base-100 shadow-sm border border-base-300">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-lg">Use in Braze</h2>
+        <ol class="list-decimal pl-5 text-sm text-base-content/70 leading-relaxed space-y-2 m-0">
+          <li>Create a timer on the Dashboard.</li>
+          <li>Click <strong>Push to Braze</strong> on the timer card (or use Connected Content Liquid).</li>
+          <li>In Braze email editor, insert the Content Block, or paste the Connected Content snippet into an HTML block.</li>
+          <li>Replace <code class="bg-base-200 px-1 rounded">https://example.com/cta</code> with your landing URL.</li>
+        </ol>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Use in Braze</h2>
-      <ol class="steps-list">
-        <li>Create a timer on the Dashboard.</li>
-        <li>Click <strong>Push to Braze</strong> on the timer card (or use Connected Content Liquid).</li>
-        <li>In Braze email editor, insert the Content Block, or paste the Connected Content snippet into an HTML block.</li>
-        <li>Replace <code>https://example.com/cta</code> with your landing URL.</li>
-      </ol>
+    <div class="card bg-base-100 shadow-sm border border-base-300">
+      <div class="card-body gap-4">
+        <div>
+          <h2 class="card-title text-lg">Pushed Content Blocks</h2>
+          <p class="text-sm text-base-content/60 mt-1">Blocks created or updated in your Braze workspace from this app.</p>
+        </div>
+        <div id="blocks"><p class="text-sm text-base-content/50">Loading…</p></div>
+      </div>
     </div>
-
-    <div class="card">
-      <h2>Pushed Content Blocks</h2>
-      <p class="card-lead">Blocks created or updated in your Braze workspace from this app.</p>
-      <div id="blocks"><p class="muted">Loading...</p></div>
-    </div>
-  </div>
 
   <script>
     const API = 'api/braze.php';
@@ -92,7 +115,7 @@ require __DIR__ . '/include/app_shell_start.php';
     function showMsg(text, ok) {
       if (!text) { msgEl.style.display = 'none'; return; }
       msgEl.style.display = 'block';
-      msgEl.className = ok ? 'ok-banner' : 'alert';
+      msgEl.className = 'alert shadow-sm ' + (ok ? 'alert-success' : 'alert-error');
       msgEl.textContent = text;
     }
 
@@ -104,7 +127,7 @@ require __DIR__ . '/include/app_shell_start.php';
     function render(status) {
       const connected = !!status.connected;
       statusEl.textContent = connected ? ('Connected · ' + (status.api_key_hint || '')) : 'Not connected';
-      statusEl.className = 'status ' + (connected ? 'on' : 'off');
+      statusEl.className = 'badge badge-lg border ' + (connected ? 'badge-success' : 'badge-ghost border-base-300');
       document.getElementById('btn-test').style.display = connected ? '' : 'none';
       document.getElementById('btn-rotate').style.display = connected ? '' : 'none';
       document.getElementById('btn-disconnect').style.display = connected ? '' : 'none';
@@ -148,14 +171,14 @@ require __DIR__ . '/include/app_shell_start.php';
       const blocks = status.blocks || [];
       const blocksEl = document.getElementById('blocks');
       if (!blocks.length) {
-        blocksEl.innerHTML = '<p class="muted">No Content Blocks pushed yet. Use <strong>Push to Braze</strong> on the dashboard.</p>';
+        blocksEl.innerHTML = '<p class="text-sm text-base-content/50">No Content Blocks pushed yet. Use <strong>Push to Braze</strong> on the dashboard.</p>';
       } else {
-        blocksEl.innerHTML = '<table><thead><tr><th>Timer</th><th>Block</th><th>Liquid</th><th>Pushed</th></tr></thead><tbody>' +
+        blocksEl.innerHTML = '<div class="overflow-x-auto rounded-box border border-base-300"><table class="table table-sm"><thead><tr><th>Timer</th><th>Block</th><th>Liquid</th><th>Pushed</th></tr></thead><tbody>' +
           blocks.map(b => {
             const when = b.last_pushed_at ? new Date(Number(b.last_pushed_at) * 1000).toISOString().replace('T', ' ').slice(0, 19) + 'Z' : '—';
-            const err = b.last_error ? '<div class="muted" style="color:#9b1c1c">' + esc(b.last_error) + '</div>' : '';
-            return '<tr><td>' + esc(b.timer_name || b.timer_id) + err + '</td><td><code>' + esc(b.block_name || '') + '</code></td><td><code>' + esc(b.liquid_tag || '') + '</code></td><td>' + esc(when) + '</td></tr>';
-          }).join('') + '</tbody></table>';
+            const err = b.last_error ? '<div class="text-error text-xs mt-1">' + esc(b.last_error) + '</div>' : '';
+            return '<tr><td>' + esc(b.timer_name || b.timer_id) + err + '</td><td><code>' + esc(b.block_name || '') + '</code></td><td><code class="text-xs">' + esc(b.liquid_tag || '') + '</code></td><td>' + esc(when) + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
       }
     }
 

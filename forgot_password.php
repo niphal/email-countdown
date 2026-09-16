@@ -28,56 +28,59 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 $csrf = auth_csrf_token();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bitview">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Forgot password — Email countdown</title>
   <?php require_once __DIR__ . '/include/google-fonts.php'; ?>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="include/app.css">
   <style>
-    :root { --bg:#f3f5f4; --surface:#ffffff; --border:#d9e2dc; --text:#0f1720; --muted:#5c6b62; --accent:#004225; --accent-dim:#0a5a36; --bad:#b91c1c; --ok:#2e7d32; }
-    * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:var(--font-body); background:linear-gradient(180deg,#f8faf9 0%,var(--bg) 100%); color:var(--text); padding:1rem; }
-    .card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.5rem; box-shadow:0 10px 28px rgba(17,24,39,.08); }
-    h1 { margin:0 0 0.75rem; font-family:var(--font-display); font-size:1.25rem; }
-    p { color:var(--muted); font-size:0.9rem; }
-    label { display:block; font-size:0.8rem; color:var(--muted); margin-bottom:0.35rem; margin-top:0.7rem; }
-    input { width:100%; padding:0.6rem 0.65rem; border-radius:8px; border:1px solid var(--border); background:#ffffff; color:var(--text); }
-    button { margin-top:1rem; width:100%; padding:0.65rem; border:0; border-radius:8px; font-weight:600; background:linear-gradient(135deg,var(--accent),var(--accent-dim)); color:#ffffff; cursor:pointer; }
-    .err { color:var(--bad); font-size:0.88rem; margin-top:0.5rem; }
-    .ok { color:var(--ok); font-size:0.88rem; margin-top:0.5rem; }
-    .menu { display:flex; gap:.45rem; flex-wrap:wrap; margin:0 0 1rem; }
-    .menu a { color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:999px; padding:.34rem .68rem; font-size:.78rem; font-weight:600; }
-    .menu a.active { border-color:var(--accent); color:var(--accent); background:#f5fbf7; }
-    a { color:var(--accent); text-decoration:none; font-weight:600; }
-    a:hover { text-decoration:underline; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37, 99, 235, 0.18), transparent),
+        oklch(96% 0.005 250);
+    }
   </style>
 </head>
-<body>
-  <div class="card">
-    <div class="menu">
-      <?php if ($isLoggedIn): ?>
-        <a href="index.php">Dashboard</a>
-        <?php if ($canSeeAdmin): ?><a href="admin.php">Admin</a><?php endif; ?>
-        <a href="logout.php">Log out</a>
-      <?php else: ?>
-        <a href="login.php">Sign in</a>
-        <a href="signup.php">Sign up</a>
-        <a href="forgot_password.php" class="active">Forgot password</a>
-      <?php endif; ?>
+<body class="text-base-content">
+  <div class="card w-full max-w-md bg-base-100 shadow-md border border-base-300">
+    <div class="card-body gap-5">
+      <div class="flex flex-wrap gap-2">
+        <?php if ($isLoggedIn): ?>
+          <a href="index.php" class="btn btn-sm btn-ghost">Dashboard</a>
+          <?php if ($canSeeAdmin): ?><a href="admin.php" class="btn btn-sm btn-ghost">Admin</a><?php endif; ?>
+          <a href="logout.php" class="btn btn-sm btn-ghost">Log out</a>
+        <?php else: ?>
+          <a href="login.php" class="btn btn-sm btn-ghost">Sign in</a>
+          <a href="signup.php" class="btn btn-sm btn-ghost">Sign up</a>
+          <a href="forgot_password.php" class="btn btn-sm btn-primary">Forgot password</a>
+        <?php endif; ?>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight" style="font-family:var(--font-display)">Forgot password</h1>
+        <p class="text-sm text-base-content/60 mt-1">Enter your account email and we will generate a reset link.</p>
+      </div>
+      <?php if ($error !== ''): ?><div role="alert" class="alert alert-error text-sm py-3"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+      <?php if ($ok): ?><div role="alert" class="alert alert-success text-sm py-3">If an account exists, a reset link has been sent. Check your inbox or (for local <code class="bg-base-100 px-1 rounded">mail_transport=log</code>) <code class="bg-base-100 px-1 rounded">data/mail-out.log</code> plus <code class="bg-base-100 px-1 rounded">data/reset-links.log</code>.</div><?php endif; ?>
+      <form method="post" action="forgot_password.php" class="space-y-4">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+        <fieldset class="fieldset p-0">
+          <label class="label" for="email"><span class="label-text font-semibold">Email</span></label>
+          <input type="email" id="email" name="email" required autocomplete="username" class="input input-bordered w-full">
+        </fieldset>
+        <button type="submit" class="btn btn-primary w-full">Send reset link</button>
+      </form>
+      <p class="text-sm text-base-content/60 m-0">
+        <a class="link link-primary" href="<?= $isLoggedIn ? 'index.php' : 'login.php' ?>"><?= $isLoggedIn ? 'Back to dashboard' : 'Back to sign in' ?></a>
+      </p>
     </div>
-    <h1>Forgot password</h1>
-    <p>Enter your account email and we will generate a reset link.</p>
-    <?php if ($error !== ''): ?><div class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
-    <?php if ($ok): ?><div class="ok">If an account exists, a reset link has been sent. Check your inbox or (for local <code>mail_transport=log</code>) <code>data/mail-out.log</code> plus <code>data/reset-links.log</code>.</div><?php endif; ?>
-    <form method="post" action="forgot_password.php">
-      <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" required autocomplete="username">
-      <button type="submit">Send reset link</button>
-    </form>
-    <p style="margin-top:0.8rem;"><a href="<?= $isLoggedIn ? 'index.php' : 'login.php' ?>"><?= $isLoggedIn ? 'Back to dashboard' : 'Back to sign in' ?></a></p>
   </div>
 </body>
 </html>
-

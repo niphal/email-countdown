@@ -19,23 +19,20 @@ $userLabel = app_shell_user_label();
 $role = app_shell_role();
 $plan = app_shell_plan_summary();
 $isAdmin = auth_has_min_role(AUTH_ROLE_ADMIN);
-$cssHref = (app_web_path_prefix() === '' ? '' : app_web_path_prefix()) . '/include/app.css';
-if ($cssHref === '' || $cssHref[0] !== '/') {
-    $cssHref = '/' . ltrim($cssHref, '/');
-}
-// Prefer relative path so it works under /email_timer/
 $cssRel = 'include/app.css';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bitview">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= htmlspecialchars($appTitle, ENT_QUOTES, 'UTF-8') ?> — Email countdown</title>
   <?php require __DIR__ . '/google-fonts.php'; ?>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="<?= htmlspecialchars($cssRel, ENT_QUOTES, 'UTF-8') ?>">
 </head>
-<body>
+<body class="bg-base-200 text-base-content min-h-screen">
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
   <div class="app">
     <aside class="sidebar" id="sidebar">
@@ -84,8 +81,8 @@ $cssRel = 'include/app.css';
 
     <div class="main">
       <header class="topbar">
-        <div style="display:flex;align-items:center;gap:.7rem;min-width:0">
-          <button type="button" class="mobile-nav-toggle secondary" id="nav-toggle" aria-label="Open menu">Menu</button>
+        <div class="flex items-center gap-3 min-w-0">
+          <button type="button" class="btn btn-ghost btn-sm mobile-nav-toggle border border-base-300" id="nav-toggle" aria-label="Open menu">Menu</button>
           <div class="topbar-title">
             <h1><?= htmlspecialchars($appTitle, ENT_QUOTES, 'UTF-8') ?></h1>
             <?php if ($appSubtitle !== ''): ?>
@@ -94,13 +91,13 @@ $cssRel = 'include/app.css';
           </div>
         </div>
         <div class="topbar-actions">
-          <div class="plan-chip">
-            <strong><?= htmlspecialchars($plan['plan_name'], ENT_QUOTES, 'UTF-8') ?></strong>
-            <span><?= (int) $plan['timer_count'] ?> / <?= (int) $plan['max_timers'] ?> timers</span>
+          <div class="badge badge-ghost badge-lg gap-2 px-4 py-3 border border-base-300 bg-base-100">
+            <span class="font-semibold text-base-content"><?= htmlspecialchars($plan['plan_name'], ENT_QUOTES, 'UTF-8') ?></span>
+            <span class="text-base-content/60"><?= (int) $plan['timer_count'] ?> / <?= (int) $plan['max_timers'] ?> timers</span>
           </div>
           <?php if (!empty($appTopActions)): ?>
             <?= $appTopActions ?>
           <?php endif; ?>
         </div>
       </header>
-      <div class="content">
+      <div class="content space-y-5">
