@@ -66,12 +66,18 @@ function timer_paint_canvas_background(
     imagefilledrectangle($im, 0, 0, $w, $h, $colBg);
 
     $abs = timer_resolve_asset_absolute($bgImageRelative);
+    $hasPhoto = false;
     if ($abs !== null) {
         $src = timer_load_image_file($abs);
         if ($src instanceof \GdImage) {
             timer_blit_cover($im, $src, $w, $h);
             imagedestroy($src);
+            $hasPhoto = true;
         }
+    }
+
+    if (function_exists('timer_paint_canvas_atmosphere')) {
+        timer_paint_canvas_atmosphere($im, $w, $h, $fallbackRgb, $hasPhoto);
     }
 
     $overlayOpacityPct = max(0, min(100, $overlayOpacityPct));

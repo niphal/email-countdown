@@ -11,6 +11,8 @@ function timer_layout_keys(): array
         'minimal_editorial',
         'progress_hybrid',
         'badge_countdown',
+        'cinema_marquee',
+        'duo_blocks',
     ];
 }
 
@@ -18,11 +20,13 @@ function timer_layout_keys(): array
 function timer_layout_labels(): array
 {
     return [
-        'segmented_pills' => 'Segmented Pills',
-        'split_emphasis' => 'Split Emphasis',
-        'minimal_editorial' => 'Minimal Editorial',
-        'progress_hybrid' => 'Progress-Bar Hybrid',
-        'badge_countdown' => 'Badge + Countdown',
+        'segmented_pills' => 'Segmented cards',
+        'split_emphasis' => 'Hero split',
+        'minimal_editorial' => 'Editorial line',
+        'progress_hybrid' => 'Progress track',
+        'badge_countdown' => 'Ribbon badge',
+        'cinema_marquee' => 'Cinema marquee',
+        'duo_blocks' => 'Dual blocks',
     ];
 }
 
@@ -30,11 +34,13 @@ function timer_layout_labels(): array
 function timer_layout_blurbs(): array
 {
     return [
-        'segmented_pills' => 'Day / hour / min blocks',
-        'split_emphasis' => 'Big number + supporting line',
-        'minimal_editorial' => 'Clean type-led countdown',
-        'progress_hybrid' => 'Digits plus progress bar',
-        'badge_countdown' => 'Badge header over digits',
+        'segmented_pills' => 'Four soft cards for D/H/M/S',
+        'split_emphasis' => 'Giant time with side metric',
+        'minimal_editorial' => 'Type-led with hairline rules',
+        'progress_hybrid' => 'Digits over a rounded track',
+        'badge_countdown' => 'Ribbon + countdown pair',
+        'cinema_marquee' => 'Centered with marquee bars',
+        'duo_blocks' => 'Days card + clock card',
     ];
 }
 
@@ -46,4 +52,3 @@ function timer_normalize_layout_key(string $key): string
 
     return 'segmented_pills';
 }
-
