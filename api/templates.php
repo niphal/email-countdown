@@ -125,13 +125,14 @@ try {
         $stmt = $pdo->prepare('INSERT INTO timer_templates (
             id, workspace_id, name, description, bg_color, text_color, accent_color, default_label,
             width, height, font_key, font_size_main, layout_key, bg_image_file, bg_overlay_color, bg_overlay_opacity,
-            is_default, created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            is_default, created_at, updated_at, design_json
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $stmt->execute([
             $id, $workspaceId, $payload['name'], $payload['description'], $payload['bg_color'], $payload['text_color'],
             $payload['accent_color'], $payload['default_label'], $payload['width'], $payload['height'],
             $payload['font_key'], $payload['font_size_main'], $payload['layout_key'], '',
             $payload['bg_overlay_color'], $payload['bg_overlay_opacity'], $payload['is_default'], $now, $now,
+            $payload['design_json'],
         ]);
         platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, 'template.created', 'template', $id, ['name' => $payload['name']]);
         json_response(['template' => timer_template_get($pdo, $workspaceId, $id)]);
@@ -159,14 +160,14 @@ try {
         $pdo->prepare('UPDATE timer_templates SET
             name = ?, description = ?, bg_color = ?, text_color = ?, accent_color = ?, default_label = ?,
             width = ?, height = ?, font_key = ?, font_size_main = ?, layout_key = ?,
-            bg_overlay_color = ?, bg_overlay_opacity = ?, is_default = ?, updated_at = ?
+            bg_overlay_color = ?, bg_overlay_opacity = ?, is_default = ?, design_json = ?, updated_at = ?
             WHERE id = ? AND workspace_id = ?')
             ->execute([
                 $payload['name'], $payload['description'], $payload['bg_color'], $payload['text_color'],
                 $payload['accent_color'], $payload['default_label'], $payload['width'], $payload['height'],
                 $payload['font_key'], $payload['font_size_main'], $payload['layout_key'],
                 $payload['bg_overlay_color'], $payload['bg_overlay_opacity'], $payload['is_default'],
-                $now, $id, $workspaceId,
+                $payload['design_json'], $now, $id, $workspaceId,
             ]);
         if (!empty($body['remove_bg_image'])) {
             $tpl = timer_template_get($pdo, $workspaceId, $id);

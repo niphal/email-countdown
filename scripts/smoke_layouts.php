@@ -5,11 +5,13 @@ require dirname(__DIR__) . '/config.php';
 require dirname(__DIR__) . '/lib/timer_fonts.php';
 require dirname(__DIR__) . '/lib/timer_layouts.php';
 require dirname(__DIR__) . '/lib/timer_background.php';
+require dirname(__DIR__) . '/lib/timer_design.php';
 require dirname(__DIR__) . '/timer.php';
 require dirname(__DIR__) . '/lib/timer_template_presets.php';
 
 $presets = timer_template_presets();
 echo count($presets) . " presets\n";
+echo count(timer_layout_keys()) . " layouts\n";
 
 $outDir = dirname(__DIR__) . '/data/render_cache';
 if (!is_dir($outDir)) {
@@ -25,69 +27,29 @@ if ($font === null) {
 $now = time();
 $ends = $now + 90000;
 $created = $now - 86400;
+$design = timer_design_defaults();
 
 foreach (timer_layout_keys() as $layout) {
     $im = render_timer_frame(
-        560,
-        148,
-        [11, 18, 32],
-        [232, 238, 247],
-        [255, 77, 109],
-        'Smoke test',
-        90000,
-        $font,
-        36,
-        $layout,
-        $created,
-        $ends,
-        'd',
-        true,
-        '',
-        '#000000',
-        0,
-        null,
-        false
+        560, 148, [11, 18, 32], [232, 238, 247], [37, 99, 235],
+        'Smoke test', 90000, $font, 36, $layout, $created, $ends,
+        'Fri', true, '', '#000000', 0, null, false, $design, $font
     );
     imagepng($im, $outDir . '/_layout_' . $layout . '.png');
     imagedestroy($im);
     echo $layout . " ok\n";
 }
 
-foreach ($presets as $key => $preset) {
-    $bg = parse_hex((string) ($preset['bg_color'] ?? '#0f172a'));
-    $fg = parse_hex((string) ($preset['text_color'] ?? '#ffffff'));
-    $ac = parse_hex((string) ($preset['accent_color'] ?? '#38bdf8'));
-    $layout = (string) ($preset['layout_key'] ?? 'segmented_pills');
-    $w = (int) ($preset['width'] ?? 520);
-    $h = (int) ($preset['height'] ?? 130);
-    $fontKey = (string) ($preset['font_key'] ?? 'noto_sans_bold');
-    $fontPath = timer_ensure_ttf_path($fontKey) ?: $font;
-    $fs = (int) ($preset['font_size_main'] ?? 36);
-    $label = (string) ($preset['default_label'] ?? $preset['name']);
-    $im = render_timer_frame(
-        $w,
-        $h,
-        $bg,
-        $fg,
-        $ac,
-        $label,
-        90000,
-        $fontPath,
-        $fs,
-        $layout,
-        $created,
-        $ends,
-        'Fri 5:00 PM',
-        true,
-        '',
-        (string) ($preset['bg_overlay_color'] ?? '#000000'),
-        (int) ($preset['bg_overlay_opacity'] ?? 0),
-        null,
-        false
-    );
-    imagepng($im, $outDir . '/_preset_' . $key . '.png');
-    imagedestroy($im);
-    echo $key . " (" . $layout . ") ok\n";
-}
+$designHidden = timer_design_sanitize(['show_days' => false, 'show_hours' => true, 'bg_mode' => 'transparent', 'after_count' => 'zeros']);
+$im = render_timer_frame(
+    480, 120, [248, 250, 252], [15, 23, 42], [37, 99, 235],
+    'Hidden days', 0, $font, 34, 'digit_plain', $created, $ends,
+    '', true, '', '#000000', 0, null, false, $designHidden, $font
+);
+imagepng($im, $outDir . '/_design_combo.png');
+imagedestroy($im);
+echo "design combo ok\n";
 
+db(); // migrate design_json
+echo "schema migrate ok\n";
 echo "done\n";

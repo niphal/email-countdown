@@ -60,10 +60,19 @@ function timer_paint_canvas_background(
     array $fallbackRgb,
     string $bgImageRelative,
     string $overlayHex,
-    int $overlayOpacityPct
+    int $overlayOpacityPct,
+    bool $transparent = false
 ): void {
-    $colBg = imagecolorallocate($im, $fallbackRgb[0], $fallbackRgb[1], $fallbackRgb[2]);
-    imagefilledrectangle($im, 0, 0, $w, $h, $colBg);
+    if ($transparent) {
+        imagealphablending($im, false);
+        imagesavealpha($im, true);
+        $clear = imagecolorallocatealpha($im, 0, 0, 0, 127);
+        imagefilledrectangle($im, 0, 0, $w, $h, $clear);
+        imagealphablending($im, true);
+    } else {
+        $colBg = imagecolorallocate($im, $fallbackRgb[0], $fallbackRgb[1], $fallbackRgb[2]);
+        imagefilledrectangle($im, 0, 0, $w, $h, $colBg);
+    }
 
     $abs = timer_resolve_asset_absolute($bgImageRelative);
     $hasPhoto = false;
@@ -76,7 +85,7 @@ function timer_paint_canvas_background(
         }
     }
 
-    if (function_exists('timer_paint_canvas_atmosphere')) {
+    if (!$transparent && function_exists('timer_paint_canvas_atmosphere')) {
         timer_paint_canvas_atmosphere($im, $w, $h, $fallbackRgb, $hasPhoto);
     }
 

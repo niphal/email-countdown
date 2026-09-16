@@ -13,6 +13,8 @@ require_once __DIR__ . '/lib/timer_fonts.php';
 require_once __DIR__ . '/lib/timer_layouts.php';
 require_once __DIR__ . '/lib/timer_background.php';
 require_once __DIR__ . '/lib/timer_render_cache.php';
+require_once __DIR__ . '/lib/timer_design.php';
+require_once __DIR__ . '/lib/timer_draw_styles.php';
 
 if (!function_exists('imagecreatetruecolor')) {
     observability_log('timer.render.gd_missing', 'error');
@@ -49,7 +51,7 @@ if ($overrideEnd !== null) {
     }
 }
 
-$stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, created_at, bg_image_file, bg_overlay_color, bg_overlay_opacity FROM timers WHERE id = ?');
+$stmt = db()->prepare('SELECT name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, created_at, bg_image_file, bg_overlay_color, bg_overlay_opacity, design_json FROM timers WHERE id = ?');
 $stmt->execute([$id]);
 $row = $stmt->fetch();
 if (!$row) {
@@ -81,6 +83,8 @@ if ($fontSizeMain > 72) {
 $bgImageFile = (string) ($row['bg_image_file'] ?? '');
 $bgOverlayColor = (string) ($row['bg_overlay_color'] ?? '#000000');
 $bgOverlayOpacity = (int) ($row['bg_overlay_opacity'] ?? 0);
+$design = timer_design_normalize($row['design_json'] ?? '{}');
+$labelFontPath = timer_ensure_ttf_path((string) ($design['label_font_key'] ?? 'open_sans')) ?: '';
 
 if (!timer_gd_has_freetype()) {
     observability_log('timer.render.freetype_missing', 'error', ['timer_id' => $id]);
@@ -130,11 +134,19 @@ $bgCanvas = null;
 $buildMs = 0;
 $encodeMs = 0;
 try {
+    $wantTransparent = (($design['bg_mode'] ?? 'solid') === 'transparent');
+    // GIF cannot do true transparency reliably — fall back to near-white solid.
+    $renderTransparent = $wantTransparent && $format === 'png';
+    $paintBg = $bg;
+    if ($wantTransparent && $format === 'gif') {
+        $paintBg = [248, 250, 252];
+    }
+
     $bgCanvas = imagecreatetruecolor($w, $h);
     if ($bgCanvas === false) {
         throw new RuntimeException('Could not allocate canvas');
     }
-    timer_paint_canvas_background($bgCanvas, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
+    timer_paint_canvas_background($bgCanvas, $w, $h, $paintBg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity, $renderTransparent);
 
     $buildStart = microtime(true);
     $quantize = ($format === 'gif');
@@ -144,7 +156,7 @@ try {
         $frames[] = render_timer_frame(
             $w,
             $h,
-            $bg,
+            $paintBg,
             $fg,
             $ac,
             $label,
@@ -160,7 +172,9 @@ try {
             $bgOverlayColor,
             $bgOverlayOpacity,
             $bgCanvas,
-            $quantize
+            $quantize,
+            $design,
+            $labelFontPath !== '' ? $labelFontPath : $fontPath
         );
     }
     $buildMs = (int) round((microtime(true) - $buildStart) * 1000);
@@ -248,6 +262,7 @@ function timer_observe_render_success(string $id, string $format, string $layout
  * @param array{0:int,1:int,2:int} $bg
  * @param array{0:int,1:int,2:int} $fg
  * @param array{0:int,1:int,2:int} $ac
+ * @param array<string, mixed>|null $design
  */
 function render_timer_frame(
     int $w,
@@ -268,19 +283,46 @@ function render_timer_frame(
     string $bgOverlayColor = '#000000',
     int $bgOverlayOpacity = 0,
     ?\GdImage $bgCanvas = null,
-    bool $quantizeForGif = true
+    bool $quantizeForGif = true,
+    ?array $design = null,
+    string $labelFontPath = ''
 ): \GdImage {
+    $design = timer_design_normalize($design ?? []);
+    $labelFontPath = $labelFontPath !== '' && is_readable($labelFontPath) ? $labelFontPath : $fontPath;
+    $transparent = ($design['bg_mode'] ?? 'solid') === 'transparent' && !$quantizeForGif;
+
     $im = imagecreatetruecolor($w, $h);
     if ($bgCanvas instanceof \GdImage) {
+        if ($transparent) {
+            imagealphablending($im, false);
+            imagesavealpha($im, true);
+        }
         imagecopy($im, $bgCanvas, 0, 0, 0, 0, $w, $h);
+        if ($transparent) {
+            imagealphablending($im, true);
+        }
     } else {
-        timer_paint_canvas_background($im, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity);
+        timer_paint_canvas_background($im, $w, $h, $bg, $bgImageFile, $bgOverlayColor, $bgOverlayOpacity, $transparent);
     }
+
+    $after = (string) ($design['after_count'] ?? 'message');
+    $ended = $remaining <= 0;
+    if ($ended && $after === 'hide') {
+        if ($quantizeForGif) {
+            imagetruecolortopalette($im, false, TIMER_GIF_COLORS);
+        }
+
+        return $im;
+    }
+    if ($ended && $after === 'zeros') {
+        $remaining = 0;
+        $ended = false;
+    }
+
     $colFg = imagecolorallocate($im, $fg[0], $fg[1], $fg[2]);
     $colAc = imagecolorallocate($im, $ac[0], $ac[1], $ac[2]);
     $darkCanvas = timer_luma($bg) < 150;
     $mutedRgb = timer_mix_rgb($fg, $bg, 0.38);
-    // Light canvases need a soft dark inset; dark canvases lift toward white.
     $panelRgb = $darkCanvas
         ? timer_mix_rgb(timer_mix_rgb($bg, [255, 255, 255], 0.16), $ac, 0.08)
         : timer_mix_rgb(timer_mix_rgb($bg, [0, 0, 0], 0.055), $ac, 0.04);
@@ -289,7 +331,12 @@ function render_timer_frame(
         : timer_mix_rgb($panelRgb, [255, 255, 255], 0.55);
     $ruleRgb = timer_mix_rgb($fg, $bg, 0.58);
     $inkOnAc = timer_luma($ac) > 160 ? [20, 20, 24] : [255, 255, 255];
-    $colMuted = imagecolorallocate($im, $mutedRgb[0], $mutedRgb[1], $mutedRgb[2]);
+    $labelsHex = (string) ($design['labels_color'] ?? '');
+    $sepHex = (string) ($design['separator_color'] ?? '');
+    $labelsRgb = $labelsHex !== '' ? parse_hex($labelsHex) : $mutedRgb;
+    $sepRgb = $sepHex !== '' ? parse_hex($sepHex) : $ac;
+    $colMuted = imagecolorallocate($im, $labelsRgb[0], $labelsRgb[1], $labelsRgb[2]);
+    $colSep = imagecolorallocate($im, $sepRgb[0], $sepRgb[1], $sepRgb[2]);
     $colPanel = imagecolorallocate($im, $panelRgb[0], $panelRgb[1], $panelRgb[2]);
     $colPanelHi = imagecolorallocate($im, $panelHiRgb[0], $panelHiRgb[1], $panelHiRgb[2]);
     $colRule = imagecolorallocate($im, $ruleRgb[0], $ruleRgb[1], $ruleRgb[2]);
@@ -299,13 +346,25 @@ function render_timer_frame(
     $colAcSoft = imagecolorallocate($im, $acSoftRgb[0], $acSoftRgb[1], $acSoftRgb[2]);
 
     [$days, $hh, $mm, $ss] = timer_split_remaining($remaining);
-    $mainLine = sprintf('%02d:%02d:%02d', $hh, $mm, $ss);
+    $units = timer_design_visible_units($design, $days, $hh, $mm, $ss);
+    $sepGlyph = timer_design_separator_glyph($design);
+    $mainParts = [];
+    foreach ($units as $u) {
+        if ($u['key'] !== 'days') {
+            $mainParts[] = $u['value'];
+        }
+    }
+    if ($mainParts === []) {
+        foreach ($units as $u) {
+            $mainParts[] = $u['value'];
+        }
+    }
+    $joiner = $sepGlyph === ' ' ? '  ' : (' ' . $sepGlyph . ' ');
+    $mainLine = implode($joiner, $mainParts);
     $daysLine = sprintf('%02d', $days);
-    $ended = $remaining <= 0;
     if ($ended) {
         $sub = 'Offer ended';
     } elseif ($firstFrame && $deadlineLabel !== '') {
-        // Outlook desktop freezes on frame 1 — keep deadline readable without animation.
         $sub = $label !== '' ? ($label . ' · ' . $deadlineLabel) : $deadlineLabel;
     } else {
         $sub = $label !== '' ? $label : ($deadlineLabel !== '' ? $deadlineLabel : 'Time remaining');
@@ -313,14 +372,35 @@ function render_timer_frame(
     $progress = timer_progress_ratio($remaining, $createdAt, $storedEndsAt);
 
     $fontSizeMain = (int) max(10, min(72, $fontSizeMain, (int) ($h * 0.52)));
-    $fontSizeSub = (int) max(8, min(40, (int) round($fontSizeMain * 0.42)));
+    $labelFsOpt = (int) ($design['label_font_size'] ?? 0);
+    $fontSizeSub = $labelFsOpt > 0
+        ? (int) max(8, min(40, $labelFsOpt))
+        : (int) max(8, min(40, (int) round($fontSizeMain * 0.42)));
     $fontSizeUnit = (int) max(8, (int) round($fontSizeSub * 0.72));
     $hasTtf = is_readable($fontPath) && function_exists('imagettfbbox');
+    $yShift = ((int) ($design['section_position'] ?? 50) - 50) / 50.0;
+    $labelShift = ((int) ($design['labels_position'] ?? 50) - 50) / 50.0;
+    $spacing = max(0.55, min(1.45, ((int) ($design['numbers_spacing'] ?? 50) + 50) / 100));
+    $sepSize = max(0.6, min(1.6, ((int) ($design['separator_size'] ?? 50) + 50) / 100));
 
     if ($ended && $hasTtf) {
         timer_draw_soft_card($im, (int) ($w * 0.16), (int) ($h * 0.18), (int) ($w * 0.84), (int) ($h * 0.82), 16, $colPanel, $colPanelHi);
         draw_ttf_centered($im, $fontPath, (int) ($fontSizeMain * 0.72), 'OFFER ENDED', $colAc, $w / 2, $h * 0.42);
-        draw_ttf_centered($im, $fontPath, $fontSizeSub, $deadlineLabel !== '' ? $deadlineLabel : 'This offer has expired', $colFg, $w / 2, $h * 0.66);
+        draw_ttf_centered($im, $labelFontPath, $fontSizeSub, $deadlineLabel !== '' ? $deadlineLabel : 'This offer has expired', $colFg, $w / 2, $h * 0.66);
+    } elseif ($hasTtf && $layoutKey === 'digit_outline') {
+        timer_draw_digit_outline($im, $fontPath, $labelFontPath, $colAc, $colMuted, $colFg, $colSep, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $sepGlyph, $yShift, $labelShift);
+    } elseif ($hasTtf && $layoutKey === 'digit_plain') {
+        timer_draw_digit_plain($im, $fontPath, $labelFontPath, $colAc, $colMuted, $colFg, $colSep, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $sepGlyph, $sepSize, $yShift, $labelShift);
+    } elseif ($hasTtf && $layoutKey === 'flip_blocks') {
+        timer_draw_flip_blocks($im, $fontPath, $labelFontPath, $colAc, $colInkOnAc, $colMuted, $colFg, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $yShift, $labelShift);
+    } elseif ($hasTtf && $layoutKey === 'outline_blocks') {
+        timer_draw_outline_blocks($im, $fontPath, $labelFontPath, $colAc, $colPanel, $colMuted, $colFg, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $yShift, $labelShift);
+    } elseif ($hasTtf && $layoutKey === 'pill_bar') {
+        timer_draw_pill_bar($im, $fontPath, $labelFontPath, $colAc, $colInkOnAc, $colMuted, $colFg, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $sepGlyph, $yShift, $labelShift);
+    } elseif ($hasTtf && $layoutKey === 'ring_arc') {
+        timer_draw_ring_units($im, $fontPath, $labelFontPath, $colAc, $colPanel, $colMuted, $colFg, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $yShift, $labelShift, false);
+    } elseif ($hasTtf && $layoutKey === 'ring_wedge') {
+        timer_draw_ring_units($im, $fontPath, $labelFontPath, $colAc, $colPanel, $colMuted, $colFg, $units, $sub, $fontSizeMain, $fontSizeUnit, $spacing, $yShift, $labelShift, true);
     } elseif ($hasTtf && $layoutKey === 'segmented_pills') {
         timer_draw_segmented_pills($im, $fontPath, $colPanel, $colPanelHi, $colAc, $colMuted, $colFg, $days, $hh, $mm, $ss, $fontSizeMain, $fontSizeUnit, $sub);
     } elseif ($hasTtf && $layoutKey === 'split_emphasis') {
@@ -342,7 +422,6 @@ function render_timer_frame(
         imagestring_centered($im, 3, $sub, $colFg, $y2);
     }
 
-    // Palette conversion is GIF-only — APNG keeps truecolor and avoids this cost.
     if ($quantizeForGif) {
         imagetruecolortopalette($im, false, TIMER_GIF_COLORS);
     }
@@ -350,11 +429,6 @@ function render_timer_frame(
     return $im;
 }
 
-/**
- * @param array{0:int,1:int,2:int} $a
- * @param array{0:int,1:int,2:int} $b
- * @return array{0:int,1:int,2:int}
- */
 function timer_mix_rgb(array $a, array $b, float $t): array
 {
     $t = max(0.0, min(1.0, $t));

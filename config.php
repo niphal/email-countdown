@@ -232,6 +232,9 @@ function db_migrate_timers(PDO $pdo): void
     if (!isset($cols['bg_overlay_opacity'])) {
         $pdo->exec('ALTER TABLE timers ADD COLUMN bg_overlay_opacity INTEGER NOT NULL DEFAULT 0');
     }
+    if (!isset($cols['design_json'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN design_json TEXT NOT NULL DEFAULT "{}"');
+    }
     if (isset($cols['font_key'])) {
         $pdo->exec("UPDATE timers SET font_key = 'noto_sans_bold' WHERE font_key IN ('system','dejavu_bold','segoe_bold','arial_bold')");
         $pdo->exec("UPDATE timers SET font_key = 'noto_sans' WHERE font_key = 'dejavu_book'");

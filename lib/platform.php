@@ -167,12 +167,23 @@ function platform_schema_migrate(PDO $pdo): void
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_timer_templates_ws ON timer_templates(workspace_id, updated_at DESC)');
 
+    $tplCols = [];
+    foreach ($pdo->query('PRAGMA table_info(timer_templates)') as $row) {
+        $tplCols[(string) $row['name']] = true;
+    }
+    if (!isset($tplCols['design_json'])) {
+        $pdo->exec('ALTER TABLE timer_templates ADD COLUMN design_json TEXT NOT NULL DEFAULT "{}"');
+    }
+
     $tcols = [];
     foreach ($pdo->query('PRAGMA table_info(timers)') as $row) {
         $tcols[(string) $row['name']] = true;
     }
     if (!isset($tcols['workspace_id'])) {
         $pdo->exec('ALTER TABLE timers ADD COLUMN workspace_id INTEGER NOT NULL DEFAULT 1');
+    }
+    if (!isset($tcols['design_json'])) {
+        $pdo->exec('ALTER TABLE timers ADD COLUMN design_json TEXT NOT NULL DEFAULT "{}"');
     }
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_timers_workspace ON timers(workspace_id)');

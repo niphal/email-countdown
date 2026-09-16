@@ -72,145 +72,61 @@ require __DIR__ . '/include/app_shell_start.php';
           <div id="preset-gallery" class="tpl-gallery"><p class="text-sm text-base-content/50">Loading…</p></div>
         </div>
       </div>
-    </section>
-
     <section id="panel-editor" class="space-y-4" hidden>
-      <div class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr] items-start">
-        <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body gap-5">
-            <div>
-              <h2 class="card-title text-lg" id="editor-title">Edit template</h2>
-              <p class="text-sm text-base-content/60 mt-1">Live preview updates as you change colors, size, and layout.</p>
+      <div class="editor-shell">
+        <div class="card bg-base-100 shadow-sm border border-base-300 editor-sidebar">
+          <div class="card-body gap-4 py-4">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="card-title text-base" id="editor-title">Edit template</h2>
             </div>
-            <div class="preview-stage">
-              <img id="preview" alt="Template preview" src="" style="display:none">
-              <p id="preview-empty" class="preview-empty-msg">Select a template or start a custom draft</p>
+            <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 w-full">
+              <button type="button" role="tab" class="tab tab-active flex-1" id="side-tab-basic" data-side="basic">Basic</button>
+              <button type="button" role="tab" class="tab flex-1" id="side-tab-design" data-side="design">Design</button>
             </div>
-            <div id="msg" class="alert py-3 text-sm" style="display:none" role="status"></div>
+            <form id="editor" class="space-y-4">
+              <input type="hidden" id="id" value="">
+              <div id="side-panel-basic" class="space-y-3">
+                <fieldset class="fieldset p-0">
+                  <label class="label" for="name"><span class="label-text font-semibold">Template name</span></label>
+                  <input id="name" required placeholder="Holiday brand 2026" class="input input-bordered w-full input-sm" <?= $canEdit ? '' : 'disabled' ?>>
+                </fieldset>
+                <fieldset class="fieldset p-0">
+                  <label class="label" for="description"><span class="label-text font-semibold">Description</span></label>
+                  <input id="description" placeholder="Used for spring campaigns" class="input input-bordered w-full input-sm" <?= $canEdit ? '' : 'disabled' ?>>
+                </fieldset>
+                <fieldset class="fieldset p-0">
+                  <label class="label" for="default_label"><span class="label-text font-semibold">Line under countdown</span></label>
+                  <input id="default_label" placeholder="Shop now · Free shipping" class="input input-bordered w-full input-sm" <?= $canEdit ? '' : 'disabled' ?>>
+                </fieldset>
+                <label class="label cursor-pointer justify-start gap-3 py-0">
+                  <input type="checkbox" id="is_default" class="checkbox checkbox-primary checkbox-sm" <?= $canEdit ? '' : 'disabled' ?>>
+                  <span class="label-text">Default for new timers</span>
+                </label>
+              </div>
+              <div id="side-panel-design" class="space-y-3" hidden>
+                <?php require __DIR__ . '/include/timer_design_panel.php'; ?>
+              </div>
+              <?php if ($canEdit): ?>
+              <div class="flex flex-wrap gap-2 pt-1">
+                <button type="submit" id="btn-save" class="btn btn-primary btn-sm">Save template</button>
+                <button type="button" class="btn btn-error btn-outline btn-sm" id="btn-delete" disabled>Delete</button>
+              </div>
+              <?php endif; ?>
+            </form>
           </div>
         </div>
 
         <div class="card bg-base-100 shadow-sm border border-base-300">
-          <div class="card-body gap-5">
-            <form id="editor" class="space-y-5">
-              <input type="hidden" id="id" value="">
-
-              <div class="space-y-4">
-                <h3 class="font-semibold text-sm tracking-wide uppercase text-base-content/50">Basics</h3>
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <fieldset class="fieldset p-0 sm:col-span-2">
-                    <label class="label" for="name"><span class="label-text font-semibold">Template name</span></label>
-                    <input id="name" required placeholder="Holiday brand 2026" class="input input-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                  <fieldset class="fieldset p-0 sm:col-span-2">
-                    <label class="label" for="description"><span class="label-text font-semibold">Description</span></label>
-                    <input id="description" placeholder="Used for spring campaigns" class="input input-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                  <fieldset class="fieldset p-0 sm:col-span-2">
-                    <label class="label" for="default_label"><span class="label-text font-semibold">Line under countdown</span></label>
-                    <input id="default_label" placeholder="Shop now · Free shipping" class="input input-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                </div>
-              </div>
-
-              <div class="space-y-3">
-                <h3 class="font-semibold text-sm tracking-wide uppercase text-base-content/50">Layout</h3>
-                <div class="layout-pick" id="layout-pick">
-                  <?php foreach ($layoutLabels as $val => $lab): ?>
-                  <label>
-                    <input type="radio" name="layout_key_radio" value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>" <?= $canEdit ? '' : 'disabled' ?>>
-                    <strong><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></strong>
-                    <span><?= htmlspecialchars($layoutBlurbs[$val] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
-                  </label>
-                  <?php endforeach; ?>
-                </div>
-                <select id="layout_key" class="hidden" <?= $canEdit ? '' : 'disabled' ?>>
-                  <?php foreach ($layoutLabels as $val => $lab): ?>
-                  <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-
-              <div class="space-y-4">
-                <h3 class="font-semibold text-sm tracking-wide uppercase text-base-content/50">Colors</h3>
-                <div class="grid grid-cols-3 gap-3">
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="bg"><span class="label-text">Background</span></label>
-                    <input type="color" id="bg" value="#1a1a2e" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="fg"><span class="label-text">Text</span></label>
-                    <input type="color" id="fg" value="#eaeaea" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="ac"><span class="label-text">Countdown</span></label>
-                    <input type="color" id="ac" value="#e94560" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                </div>
-              </div>
-
-              <div class="space-y-4">
-                <h3 class="font-semibold text-sm tracking-wide uppercase text-base-content/50">Size &amp; type</h3>
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="width"><span class="label-text font-semibold">Width (px)</span></label>
-                    <input type="number" id="width" min="200" max="600" step="10" value="480" class="input input-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="height"><span class="label-text font-semibold">Height (px)</span></label>
-                    <input type="number" id="height" min="80" max="300" step="10" value="120" class="input input-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="font_key"><span class="label-text font-semibold">Font</span></label>
-                    <select id="font_key" class="select select-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                      <?php foreach (timer_font_labels() as $val => $lab): ?>
-                      <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-                      <?php endforeach; ?>
-                    </select>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="font_size_main"><span class="label-text font-semibold">Main size (px)</span></label>
-                    <input type="number" id="font_size_main" min="14" max="72" value="32" class="input input-bordered w-full" <?= $canEdit ? '' : 'disabled' ?>>
-                  </fieldset>
-                </div>
-              </div>
-
-              <div class="space-y-3">
-                <h3 class="font-semibold text-sm tracking-wide uppercase text-base-content/50">Background image</h3>
-                <div class="bg-upload space-y-3">
-                  <p class="text-xs text-base-content/60 m-0">Optional photo behind the countdown. Overlay keeps digits readable.</p>
-                  <?php if ($canEdit): ?>
-                  <input type="file" id="bg_file" accept="image/jpeg,image/png,image/webp,image/gif" class="file-input file-input-bordered w-full">
-                  <div class="flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-outline btn-sm" id="btn-upload-bg" disabled>Upload image</button>
-                    <button type="button" class="btn btn-ghost btn-sm" id="btn-remove-bg" disabled>Remove image</button>
-                  </div>
-                  <?php endif; ?>
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <fieldset class="fieldset p-0">
-                      <label class="label" for="overlay_color"><span class="label-text font-semibold">Overlay color</span></label>
-                      <input type="color" id="overlay_color" value="#000000" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1" <?= $canEdit ? '' : 'disabled' ?>>
-                    </fieldset>
-                    <fieldset class="fieldset p-0">
-                      <label class="label" for="overlay_opacity"><span class="label-text font-semibold">Overlay (<span id="overlay_val">35</span>%)</span></label>
-                      <input type="range" id="overlay_opacity" min="0" max="100" value="35" class="range range-primary range-sm mt-2" <?= $canEdit ? '' : 'disabled' ?>>
-                    </fieldset>
-                  </div>
-                </div>
-              </div>
-
-              <label class="label cursor-pointer justify-start gap-3 py-0">
-                <input type="checkbox" id="is_default" class="checkbox checkbox-primary" <?= $canEdit ? '' : 'disabled' ?>>
-                <span class="label-text">Default template for new timers</span>
-              </label>
-
-              <?php if ($canEdit): ?>
-              <div class="flex flex-wrap gap-2 pt-1">
-                <button type="submit" id="btn-save" class="btn btn-primary">Save template</button>
-                <button type="button" class="btn btn-error btn-outline" id="btn-delete" disabled>Delete</button>
-              </div>
-              <?php endif; ?>
-            </form>
+          <div class="card-body gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="font-semibold text-sm m-0">Timer preview</h3>
+              <span class="text-xs text-base-content/50" id="preview-meta"></span>
+            </div>
+            <div class="preview-stage preview-stage-check">
+              <img id="preview" alt="Template preview" src="" style="display:none">
+              <p id="preview-empty" class="preview-empty-msg">Select a template or start a custom draft</p>
+            </div>
+            <div id="msg" class="alert py-3 text-sm" style="display:none" role="status"></div>
           </div>
         </div>
       </div>
@@ -218,8 +134,9 @@ require __DIR__ . '/include/app_shell_start.php';
 
   <div id="toast" class="toast-app" role="status"></div>
 
+  <script src="include/timer_design_editor.js"></script>
   <script>
-    const API = 'api/templates.php';
+const API = 'api/templates.php';
     const PREVIEW = 'api/template_preview.php';
     const CAN_EDIT = <?= $canEdit ? 'true' : 'false' ?>;
     const LAYOUT_LABELS = <?= json_encode($layoutLabels, JSON_THROW_ON_ERROR) ?>;
@@ -266,23 +183,14 @@ require __DIR__ . '/include/app_shell_start.php';
     }
 
     function payloadFromForm() {
-      return {
+      const style = TimerDesignForm.readStyleFields();
+      return Object.assign({
         id: document.getElementById('id').value || undefined,
         name: document.getElementById('name').value.trim(),
         description: document.getElementById('description').value.trim(),
         default_label: document.getElementById('default_label').value.trim(),
-        bg_color: document.getElementById('bg').value,
-        text_color: document.getElementById('fg').value,
-        accent_color: document.getElementById('ac').value,
-        width: parseInt(document.getElementById('width').value, 10) || 480,
-        height: parseInt(document.getElementById('height').value, 10) || 120,
-        font_key: document.getElementById('font_key').value,
-        font_size_main: parseInt(document.getElementById('font_size_main').value, 10) || 32,
-        layout_key: document.getElementById('layout_key').value,
-        bg_overlay_color: document.getElementById('overlay_color').value,
-        bg_overlay_opacity: parseInt(document.getElementById('overlay_opacity').value, 10) || 0,
         is_default: document.getElementById('is_default').checked,
-      };
+      }, style);
     }
 
     function fillForm(t) {
@@ -291,18 +199,8 @@ require __DIR__ . '/include/app_shell_start.php';
       document.getElementById('name').value = t.name || '';
       document.getElementById('description').value = t.description || '';
       document.getElementById('default_label').value = t.default_label || '';
-      document.getElementById('bg').value = t.bg_color || '#1a1a2e';
-      document.getElementById('fg').value = t.text_color || '#eaeaea';
-      document.getElementById('ac').value = t.accent_color || '#e94560';
-      document.getElementById('width').value = String(t.width || 480);
-      document.getElementById('height').value = String(t.height || 120);
-      document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
-      document.getElementById('font_size_main').value = String(t.font_size_main || 32);
-      syncLayoutRadios(t.layout_key || 'segmented_pills');
-      document.getElementById('overlay_color').value = t.bg_overlay_color || '#000000';
-      document.getElementById('overlay_opacity').value = String(t.bg_overlay_opacity ?? 35);
-      document.getElementById('overlay_val').textContent = String(t.bg_overlay_opacity ?? 35);
       document.getElementById('is_default').checked = Number(t.is_default) === 1;
+      TimerDesignForm.writeStyleFields(t);
       const del = document.getElementById('btn-delete');
       const rem = document.getElementById('btn-remove-bg');
       if (del) del.disabled = false;
@@ -318,18 +216,13 @@ require __DIR__ . '/include/app_shell_start.php';
       document.getElementById('name').value = 'New brand template';
       document.getElementById('description').value = '';
       document.getElementById('default_label').value = '';
-      document.getElementById('bg').value = '#0f172a';
-      document.getElementById('fg').value = '#e2e8f0';
-      document.getElementById('ac').value = '#3b82f6';
-      document.getElementById('width').value = '520';
-      document.getElementById('height').value = '128';
-      document.getElementById('font_key').value = 'noto_sans_bold';
-      document.getElementById('font_size_main').value = '34';
-      syncLayoutRadios('segmented_pills');
-      document.getElementById('overlay_color').value = '#000000';
-      document.getElementById('overlay_opacity').value = '40';
-      document.getElementById('overlay_val').textContent = '40';
       document.getElementById('is_default').checked = false;
+      TimerDesignForm.writeStyleFields({
+        bg_color: '#0f172a', text_color: '#e2e8f0', accent_color: '#3b82f6',
+        width: 520, height: 128, font_key: 'noto_sans_bold', font_size_main: 34,
+        layout_key: 'segmented_pills', bg_overlay_color: '#000000', bg_overlay_opacity: 40,
+        design: {},
+      });
       const del = document.getElementById('btn-delete');
       const rem = document.getElementById('btn-remove-bg');
       if (del) del.disabled = true;
@@ -449,18 +342,8 @@ require __DIR__ . '/include/app_shell_start.php';
           document.getElementById('name').value = p.name || 'Custom style';
           document.getElementById('description').value = p.description || '';
           document.getElementById('default_label').value = p.default_label || '';
-          document.getElementById('bg').value = p.bg_color;
-          document.getElementById('fg').value = p.text_color;
-          document.getElementById('ac').value = p.accent_color;
-          document.getElementById('width').value = String(p.width);
-          document.getElementById('height').value = String(p.height);
-          document.getElementById('font_key').value = p.font_key;
-          document.getElementById('font_size_main').value = String(p.font_size_main);
-          syncLayoutRadios(p.layout_key);
-          document.getElementById('overlay_color').value = p.bg_overlay_color || '#000000';
-          document.getElementById('overlay_opacity').value = String(p.bg_overlay_opacity ?? 35);
-          document.getElementById('overlay_val').textContent = String(p.bg_overlay_opacity ?? 35);
           document.getElementById('is_default').checked = false;
+          TimerDesignForm.writeStyleFields(p);
           const del = document.getElementById('btn-delete');
           const rem = document.getElementById('btn-remove-bg');
           if (del) del.disabled = true;
@@ -483,19 +366,21 @@ require __DIR__ . '/include/app_shell_start.php';
       const t = templates.find(x => x.id === activeId);
       if (t && t.bg_image_file) payload.bg_image_file = t.bg_image_file;
       try {
-        const r = await fetch(PREVIEW, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) return;
-        const blob = await r.blob();
-        const img = document.getElementById('preview');
-        img.src = URL.createObjectURL(blob);
-        img.style.display = 'block';
+        await TimerDesignForm.refreshPreview(
+          document.getElementById('preview'),
+          document.getElementById('preview-meta'),
+          payload,
+          PREVIEW
+        );
         document.getElementById('preview-empty').style.display = 'none';
       } catch (e) {}
+    }
+
+    function setSideTab(name) {
+      document.getElementById('side-panel-basic').hidden = name !== 'basic';
+      document.getElementById('side-panel-design').hidden = name !== 'design';
+      document.getElementById('side-tab-basic').classList.toggle('tab-active', name === 'basic');
+      document.getElementById('side-tab-design').classList.toggle('tab-active', name === 'design');
     }
 
     async function load() {
@@ -530,6 +415,11 @@ require __DIR__ . '/include/app_shell_start.php';
     document.getElementById('tab-library').addEventListener('click', e => { e.preventDefault(); setTab('library'); });
     document.getElementById('tab-starters').addEventListener('click', e => { e.preventDefault(); setTab('starters'); });
     document.getElementById('tab-editor').addEventListener('click', e => { e.preventDefault(); setTab('editor'); });
+    document.getElementById('side-tab-basic').addEventListener('click', () => setSideTab('basic'));
+    document.getElementById('side-tab-design').addEventListener('click', () => setSideTab('design'));
+    TimerDesignForm.bindChrome(schedulePreview);
+    const btnChange = document.getElementById('btn-change-template');
+    if (btnChange) btnChange.addEventListener('click', () => setTab('starters'));
 
     document.querySelectorAll('input[name="layout_key_radio"]').forEach(r => {
       r.addEventListener('change', () => {

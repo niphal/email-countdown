@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/lib/timer_fonts.php';
 require_once dirname(__DIR__) . '/lib/timer_layouts.php';
 require_once dirname(__DIR__) . '/lib/monetization.php';
 require_once dirname(__DIR__) . '/lib/timer_templates.php';
+require_once dirname(__DIR__) . '/lib/timer_design.php';
 require_once dirname(__DIR__) . '/auth.php';
 
 auth_start_session();
@@ -21,12 +22,14 @@ try {
     }
 
     if ($method === 'GET') {
-        $stmt = db()->prepare('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, template_id, bg_image_file, bg_overlay_color, bg_overlay_opacity, created_at FROM timers WHERE workspace_id = ? ORDER BY created_at DESC');
+        $stmt = db()->prepare('SELECT id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, template_id, bg_image_file, bg_overlay_color, bg_overlay_opacity, design_json, created_at FROM timers WHERE workspace_id = ? ORDER BY created_at DESC');
         $stmt->execute([$workspaceId]);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['font_key'] = timer_normalize_font_key((string) ($row['font_key'] ?? 'noto_sans_bold'));
             $row['layout_key'] = timer_normalize_layout_key((string) ($row['layout_key'] ?? 'segmented_pills'));
+            $row['design'] = timer_design_normalize($row['design_json'] ?? '{}');
+            $row['design_json'] = timer_design_encode($row['design']);
             $row['dynamic_sig'] = app_timer_signature_for_id((string) ($row['id'] ?? ''));
         }
         unset($row);
@@ -49,12 +52,12 @@ try {
         $label = mb_substr((string) ($body['label'] ?? $style['label']), 0, 120);
         $now = time();
         $ent = billing_assert_timer_create_allowed($pdo, $workspaceId, $style['layout_key'], $style['font_key']);
-        $stmt = $pdo->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, template_id, bg_image_file, bg_overlay_color, bg_overlay_opacity, workspace_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+        $stmt = $pdo->prepare('INSERT INTO timers (id, name, ends_at, bg_color, text_color, accent_color, label, width, height, font_key, font_size_main, layout_key, template_id, bg_image_file, bg_overlay_color, bg_overlay_opacity, design_json, workspace_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $stmt->execute([
             $id, $name, $endsAt, $style['bg_color'], $style['text_color'], $style['accent_color'], $label,
             $style['width'], $style['height'], $style['font_key'], $style['font_size_main'], $style['layout_key'],
             $style['template_id'], $style['bg_image_file'], $style['bg_overlay_color'], $style['bg_overlay_opacity'],
-            $workspaceId, $now,
+            $style['design_json'], $workspaceId, $now,
         ]);
         platform_audit_log($pdo, $workspaceId, auth_user_id() ?: null, 'timer.created', 'timer', $id, ['name' => $name, 'ends_at' => $endsAt, 'plan' => $ent['plan_key']]);
         json_response(['id' => $id]);
@@ -77,12 +80,12 @@ try {
         $style = timer_style_from_body($pdo, $workspaceId, $body);
         $label = mb_substr((string) ($body['label'] ?? $style['label']), 0, 120);
         billing_assert_timer_update_allowed($pdo, $workspaceId, $style['layout_key'], $style['font_key']);
-        $stmt = $pdo->prepare('UPDATE timers SET name = ?, ends_at = ?, bg_color = ?, text_color = ?, accent_color = ?, label = ?, width = ?, height = ?, font_key = ?, font_size_main = ?, layout_key = ?, template_id = ?, bg_image_file = ?, bg_overlay_color = ?, bg_overlay_opacity = ? WHERE id = ? AND workspace_id = ?');
+        $stmt = $pdo->prepare('UPDATE timers SET name = ?, ends_at = ?, bg_color = ?, text_color = ?, accent_color = ?, label = ?, width = ?, height = ?, font_key = ?, font_size_main = ?, layout_key = ?, template_id = ?, bg_image_file = ?, bg_overlay_color = ?, bg_overlay_opacity = ?, design_json = ? WHERE id = ? AND workspace_id = ?');
         $stmt->execute([
             $name, $endsAt, $style['bg_color'], $style['text_color'], $style['accent_color'], $label,
             $style['width'], $style['height'], $style['font_key'], $style['font_size_main'], $style['layout_key'],
             $style['template_id'], $style['bg_image_file'], $style['bg_overlay_color'], $style['bg_overlay_opacity'],
-            $id, $workspaceId,
+            $style['design_json'], $id, $workspaceId,
         ]);
         if ($stmt->rowCount() < 1) {
             json_response(['error' => 'not found'], 404);
@@ -137,6 +140,14 @@ function is_valid_id(string $id): bool
 function timer_style_from_body(PDO $pdo, int $workspaceId, array $body): array
 {
     $templateId = trim((string) ($body['template_id'] ?? ''));
+    $designInput = $body['design'] ?? $body['design_json'] ?? [];
+    if (is_string($designInput)) {
+        $decoded = json_decode($designInput, true);
+        $designInput = is_array($decoded) ? $decoded : [];
+    }
+    if (!is_array($designInput)) {
+        $designInput = [];
+    }
     $base = [
         'bg_color' => sanitize_hex((string) ($body['bg_color'] ?? '#1a1a2e'), '#1a1a2e'),
         'text_color' => sanitize_hex((string) ($body['text_color'] ?? '#eaeaea'), '#eaeaea'),
@@ -151,6 +162,8 @@ function timer_style_from_body(PDO $pdo, int $workspaceId, array $body): array
         'bg_image_file' => '',
         'bg_overlay_color' => sanitize_hex((string) ($body['bg_overlay_color'] ?? '#000000'), '#000000'),
         'bg_overlay_opacity' => clamp_int((int) ($body['bg_overlay_opacity'] ?? 0), 0, 100),
+        'design' => timer_design_sanitize($designInput),
+        'design_json' => timer_design_encode(timer_design_sanitize($designInput)),
     ];
     if ($templateId !== '' && preg_match('/^[a-f0-9]{32}$/', $templateId)) {
         $tpl = timer_template_get($pdo, $workspaceId, $templateId);
@@ -161,6 +174,10 @@ function timer_style_from_body(PDO $pdo, int $workspaceId, array $body): array
             $base['bg_overlay_opacity'] = (int) ($tpl['bg_overlay_opacity'] ?? $base['bg_overlay_opacity']);
             if (trim((string) ($body['label'] ?? '')) === '' && (string) ($tpl['default_label'] ?? '') !== '') {
                 $base['label'] = (string) $tpl['default_label'];
+            }
+            if ($designInput === [] && !empty($tpl['design'])) {
+                $base['design'] = timer_design_normalize($tpl['design']);
+                $base['design_json'] = timer_design_encode($base['design']);
             }
         }
     }

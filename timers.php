@@ -8,6 +8,10 @@ auth_start_session();
 auth_require_login_redirect();
 db();
 
+$canEdit = true;
+$layoutLabels = timer_layout_labels();
+$layoutBlurbs = timer_layout_blurbs();
+
 $timerPreviewPrefix = app_timer_url_prefix();
 $timerEmbedPrefix = app_timer_embed_src_prefix();
 $embedNeedsPublicBase = str_starts_with($timerEmbedPrefix, '/');
@@ -79,90 +83,60 @@ require __DIR__ . '/include/app_shell_start.php';
           </div>
 
           <div class="card bg-base-100 shadow-sm border border-base-300">
-            <div class="card-body gap-5">
-              <div>
-                <h2 class="card-title text-lg" id="editor-heading">Edit timer</h2>
-                <p class="text-sm text-base-content/60 mt-1">Update the end time, copy, or appearance, then save.</p>
-              </div>
-              <form id="create-form" class="space-y-4">
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="template_id"><span class="label-text font-semibold">Brand template</span></label>
-                    <select id="template_id" name="template_id" class="select select-bordered w-full">
-                      <option value="">Custom appearance</option>
-                    </select>
-                    <p class="label"><span class="label-text-alt"><a class="link link-primary" href="gallery.php">Browse gallery</a> · <a class="link link-primary" href="templates.php">My templates</a></span></p>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="name"><span class="label-text font-semibold">Internal name</span></label>
-                    <input type="text" id="name" name="name" required placeholder="Spring sale ends" autocomplete="off" class="input input-bordered w-full">
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="ends"><span class="label-text font-semibold">Ends at (your local time)</span></label>
-                    <input type="datetime-local" id="ends" name="ends" required class="input input-bordered w-full">
-                    <p class="label"><span class="label-text-alt">Stored and shown in email as UTC</span></p>
-                  </fieldset>
-                  <fieldset class="fieldset p-0">
-                    <label class="label" for="label"><span class="label-text font-semibold">Optional line under countdown</span></label>
-                    <input type="text" id="label" name="label" placeholder="Use code SAVE20" autocomplete="off" class="input input-bordered w-full">
-                  </fieldset>
-                </div>
-
-                <div class="collapse collapse-arrow bg-base-200/60 border border-base-300 rounded-box" id="appearance-wrap">
-                  <input type="checkbox" id="appearance-toggle" />
-                  <div class="collapse-title font-semibold text-sm">Appearance</div>
-                  <div class="collapse-content">
-                    <div id="appearance" class="grid gap-4 sm:grid-cols-2 pt-1">
-                      <div class="grid grid-cols-3 gap-3 sm:col-span-2">
-                        <fieldset class="fieldset p-0">
-                          <label class="label" for="bg"><span class="label-text">Background</span></label>
-                          <input type="color" id="bg" value="#1a1a2e" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1">
-                        </fieldset>
-                        <fieldset class="fieldset p-0">
-                          <label class="label" for="fg"><span class="label-text">Text</span></label>
-                          <input type="color" id="fg" value="#eaeaea" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1">
-                        </fieldset>
-                        <fieldset class="fieldset p-0">
-                          <label class="label" for="ac"><span class="label-text">Countdown</span></label>
-                          <input type="color" id="ac" value="#e94560" class="h-11 w-full cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1">
-                        </fieldset>
-                      </div>
+            <div class="card-body gap-4 py-4">
+              <div class="editor-shell editor-shell-nested">
+                <div class="editor-sidebar space-y-3">
+                  <h2 class="card-title text-base" id="editor-heading">Edit timer</h2>
+                  <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 w-full">
+                    <button type="button" role="tab" class="tab tab-active flex-1" id="side-tab-basic" data-side="basic">Basic</button>
+                    <button type="button" role="tab" class="tab flex-1" id="side-tab-design" data-side="design">Design</button>
+                  </div>
+                  <form id="create-form" class="space-y-3">
+                    <div id="side-panel-basic" class="space-y-3">
                       <fieldset class="fieldset p-0">
-                        <label class="label" for="width"><span class="label-text font-semibold">Width (px)</span></label>
-                        <input type="number" id="width" value="480" min="200" max="600" step="10" class="input input-bordered w-full">
-                      </fieldset>
-                      <fieldset class="fieldset p-0">
-                        <label class="label" for="height"><span class="label-text font-semibold">Height (px)</span></label>
-                        <input type="number" id="height" value="120" min="80" max="300" step="10" class="input input-bordered w-full">
-                      </fieldset>
-                      <fieldset class="fieldset p-0">
-                        <label class="label" for="layout_key"><span class="label-text font-semibold">Layout</span></label>
-                        <select id="layout_key" name="layout_key" class="select select-bordered w-full">
-                          <?php foreach (timer_layout_labels() as $val => $lab): ?>
-                          <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-                          <?php endforeach; ?>
+                        <label class="label" for="template_id"><span class="label-text font-semibold">Brand template</span></label>
+                        <select id="template_id" name="template_id" class="select select-bordered select-sm w-full">
+                          <option value="">Custom appearance</option>
                         </select>
+                        <p class="label"><span class="label-text-alt"><a class="link link-primary" href="gallery.php">Gallery</a> · <a class="link link-primary" href="templates.php">Templates</a></span></p>
                       </fieldset>
                       <fieldset class="fieldset p-0">
-                        <label class="label" for="font_key"><span class="label-text font-semibold">Font</span></label>
-                        <select id="font_key" name="font_key" class="select select-bordered w-full">
-                          <?php foreach (timer_font_labels() as $val => $lab): ?>
-                          <option value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lab, ENT_QUOTES, 'UTF-8') ?></option>
-                          <?php endforeach; ?>
-                        </select>
+                        <label class="label" for="name"><span class="label-text font-semibold">Timer name</span></label>
+                        <input type="text" id="name" name="name" required placeholder="Spring sale ends" autocomplete="off" class="input input-bordered input-sm w-full">
                       </fieldset>
                       <fieldset class="fieldset p-0">
-                        <label class="label" for="font_size_main"><span class="label-text font-semibold">Main size (px)</span></label>
-                        <input type="number" id="font_size_main" value="32" min="14" max="72" step="1" class="input input-bordered w-full">
+                        <label class="label" for="ends"><span class="label-text font-semibold">End date &amp; time</span></label>
+                        <input type="datetime-local" id="ends" name="ends" required class="input input-bordered input-sm w-full">
+                        <p class="label"><span class="label-text-alt">Timezone: UTC (stored)</span></p>
+                      </fieldset>
+                      <fieldset class="fieldset p-0">
+                        <label class="label" for="label"><span class="label-text font-semibold">Line under countdown</span></label>
+                        <input type="text" id="label" name="label" placeholder="Use code SAVE20" autocomplete="off" class="input input-bordered input-sm w-full">
                       </fieldset>
                     </div>
+                    <div id="side-panel-design" class="space-y-3" hidden>
+                      <?php
+                      $designPanelShowBgUpload = false;
+                      require __DIR__ . '/include/timer_design_panel.php';
+                      ?>
+                    </div>
+                  </form>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="submit" form="create-form" id="btn-create" class="btn btn-primary btn-sm">Save timer</button>
+                    <button type="button" id="btn-cancel-edit" class="btn btn-ghost btn-sm">Cancel</button>
+                    <button type="button" id="btn-delete" class="btn btn-error btn-outline btn-sm" disabled>Delete</button>
                   </div>
                 </div>
-              </form>
-              <div class="flex flex-wrap gap-2">
-                <button type="submit" form="create-form" id="btn-create" class="btn btn-primary">Save timer</button>
-                <button type="button" id="btn-cancel-edit" class="btn btn-ghost">Cancel</button>
-                <button type="button" id="btn-delete" class="btn btn-error btn-outline" disabled>Delete</button>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-semibold">Live draft preview</span>
+                    <span class="text-xs text-base-content/50" id="draft-preview-meta"></span>
+                  </div>
+                  <div class="preview-stage preview-stage-check" style="min-height:120px">
+                    <img id="draft-preview" alt="Draft preview" style="display:none">
+                    <p id="draft-preview-empty" class="preview-empty-msg">Adjust Basic or Design to preview</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -172,6 +146,7 @@ require __DIR__ . '/include/app_shell_start.php';
 
   <div id="toast" class="toast-app" role="status"></div>
 
+  <script src="include/timer_design_editor.js"></script>
   <script>
     const API = 'api/timers.php';
     const BRAZE_API = 'api/braze.php';
@@ -199,9 +174,33 @@ require __DIR__ . '/include/app_shell_start.php';
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
-    function setAppearanceOpen(open) {
-      const toggle = document.getElementById('appearance-toggle');
-      if (toggle) toggle.checked = !!open;
+    function setAppearanceOpen() { /* legacy no-op */ }
+    let draftPreviewTimer = null;
+    function scheduleDraftPreview() {
+      clearTimeout(draftPreviewTimer);
+      draftPreviewTimer = setTimeout(refreshDraftPreview, 350);
+    }
+    async function refreshDraftPreview() {
+      const style = TimerDesignForm.readStyleFields();
+      const payload = Object.assign({
+        name: document.getElementById('name').value.trim() || 'Preview',
+        default_label: document.getElementById('label').value.trim() || 'Countdown',
+      }, style);
+      try {
+        await TimerDesignForm.refreshPreview(
+          document.getElementById('draft-preview'),
+          document.getElementById('draft-preview-meta'),
+          payload,
+          'api/template_preview.php'
+        );
+        document.getElementById('draft-preview-empty').style.display = 'none';
+      } catch (e) {}
+    }
+    function setSideTab(name) {
+      document.getElementById('side-panel-basic').hidden = name !== 'basic';
+      document.getElementById('side-panel-design').hidden = name !== 'design';
+      document.getElementById('side-tab-basic').classList.toggle('tab-active', name === 'basic');
+      document.getElementById('side-tab-design').classList.toggle('tab-active', name === 'design');
     }
     function requireHttpsEmbed() {
       if (EMBED_HTTPS_OK) return true;
@@ -245,18 +244,11 @@ require __DIR__ . '/include/app_shell_start.php';
     function applyTemplateToForm(templateId) {
       const t = templateCatalog.find(x => x.id === templateId);
       if (!t) return;
-      document.getElementById('bg').value = t.bg_color || '#1a1a2e';
-      document.getElementById('fg').value = t.text_color || '#eaeaea';
-      document.getElementById('ac').value = t.accent_color || '#e94560';
-      document.getElementById('width').value = String(Number(t.width || 480));
-      document.getElementById('height').value = String(Number(t.height || 120));
-      document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
-      document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
-      document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
+      TimerDesignForm.writeStyleFields(t);
       if (!document.getElementById('label').value.trim() && t.default_label) {
         document.getElementById('label').value = t.default_label;
       }
-      setAppearanceOpen(true);
+      scheduleDraftPreview();
     }
 
     async function loadTemplatesForForm() {
@@ -299,16 +291,13 @@ require __DIR__ . '/include/app_shell_start.php';
 
     function resetCreateForm(applyDefaultTemplate) {
       document.getElementById('create-form').reset();
-      document.getElementById('bg').value = '#1a1a2e';
-      document.getElementById('fg').value = '#eaeaea';
-      document.getElementById('ac').value = '#e94560';
-      document.getElementById('width').value = '480';
-      document.getElementById('height').value = '120';
-      document.getElementById('font_key').value = 'noto_sans_bold';
-      document.getElementById('font_size_main').value = '32';
-      document.getElementById('layout_key').value = 'segmented_pills';
+      TimerDesignForm.writeStyleFields({
+        bg_color: '#1a1a2e', text_color: '#eaeaea', accent_color: '#e94560',
+        width: 480, height: 120, font_key: 'noto_sans_bold', font_size_main: 32,
+        layout_key: 'segmented_pills', bg_overlay_color: '#000000', bg_overlay_opacity: 0,
+        design: {},
+      });
       document.getElementById('template_id').value = '';
-      setAppearanceOpen(false);
       editingId = null;
       if (applyDefaultTemplate) {
         const def = templateCatalog.find(t => Number(t.is_default) === 1);
@@ -317,6 +306,7 @@ require __DIR__ . '/include/app_shell_start.php';
           applyTemplateToForm(def.id);
         }
       }
+      scheduleDraftPreview();
     }
 
     function startCreate() {
@@ -348,19 +338,12 @@ require __DIR__ . '/include/app_shell_start.php';
       document.getElementById('name').value = t.name || '';
       document.getElementById('ends').value = toLocalDateTimeValue(Number(t.ends_at || 0));
       document.getElementById('label').value = t.label || '';
-      document.getElementById('bg').value = t.bg_color || '#1a1a2e';
-      document.getElementById('fg').value = t.text_color || '#eaeaea';
-      document.getElementById('ac').value = t.accent_color || '#e94560';
-      document.getElementById('width').value = String(Number(t.width || 480));
-      document.getElementById('height').value = String(Number(t.height || 120));
-      document.getElementById('font_key').value = t.font_key || 'noto_sans_bold';
-      document.getElementById('font_size_main').value = String(Number(t.font_size_main || 32));
-      document.getElementById('layout_key').value = t.layout_key || 'segmented_pills';
+      TimerDesignForm.writeStyleFields(t);
       document.getElementById('template_id').value = t.template_id || '';
       document.getElementById('editor-heading').textContent = 'Edit timer';
       document.getElementById('btn-create').textContent = 'Save changes';
       document.getElementById('btn-delete').disabled = false;
-      setAppearanceOpen(false);
+      scheduleDraftPreview();
     }
 
     function bindDetailActions(t) {
@@ -492,11 +475,20 @@ require __DIR__ . '/include/app_shell_start.php';
       }
     }
 
+    document.getElementById('timer-search').addEventListener('input', renderList);
     document.getElementById('template_id').addEventListener('change', () => {
       const id = document.getElementById('template_id').value;
       if (id) applyTemplateToForm(id);
+      scheduleDraftPreview();
     });
-    document.getElementById('timer-search').addEventListener('input', renderList);
+    document.getElementById('side-tab-basic').addEventListener('click', () => setSideTab('basic'));
+    document.getElementById('side-tab-design').addEventListener('click', () => setSideTab('design'));
+    TimerDesignForm.bindChrome(scheduleDraftPreview);
+    document.getElementById('name').addEventListener('input', scheduleDraftPreview);
+    document.getElementById('label').addEventListener('input', scheduleDraftPreview);
+    const btnChangeTpl = document.getElementById('btn-change-template');
+    if (btnChangeTpl) btnChangeTpl.addEventListener('click', () => { window.location.href = 'gallery.php'; });
+
     document.getElementById('btn-new').addEventListener('click', startCreate);
     document.getElementById('btn-new-top').addEventListener('click', startCreate);
     document.getElementById('btn-new-empty').addEventListener('click', startCreate);
@@ -521,21 +513,14 @@ require __DIR__ . '/include/app_shell_start.php';
       const name = document.getElementById('name').value.trim();
       const ends = document.getElementById('ends').value;
       if (!name || !ends) return;
-      const body = {
+      const style = TimerDesignForm.readStyleFields();
+      const body = Object.assign({
         id: editingId || undefined,
         name,
         ends_at: toUnix(ends),
         label: document.getElementById('label').value.trim(),
-        bg_color: document.getElementById('bg').value,
-        text_color: document.getElementById('fg').value,
-        accent_color: document.getElementById('ac').value,
-        width: parseInt(document.getElementById('width').value, 10) || 560,
-        height: parseInt(document.getElementById('height').value, 10) || 140,
-        font_key: document.getElementById('font_key').value,
-        font_size_main: parseInt(document.getElementById('font_size_main').value, 10) || 32,
-        layout_key: document.getElementById('layout_key').value,
         template_id: document.getElementById('template_id').value.trim() || undefined,
-      };
+      }, style);
       const btn = document.getElementById('btn-create');
       btn.disabled = true;
       try {

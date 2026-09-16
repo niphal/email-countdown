@@ -13,6 +13,13 @@ function timer_layout_keys(): array
         'badge_countdown',
         'cinema_marquee',
         'duo_blocks',
+        'digit_outline',
+        'digit_plain',
+        'flip_blocks',
+        'outline_blocks',
+        'pill_bar',
+        'ring_arc',
+        'ring_wedge',
     ];
 }
 
@@ -27,6 +34,13 @@ function timer_layout_labels(): array
         'badge_countdown' => 'Ribbon badge',
         'cinema_marquee' => 'Cinema marquee',
         'duo_blocks' => 'Dual blocks',
+        'digit_outline' => 'Outlined digits',
+        'digit_plain' => 'Plain digits',
+        'flip_blocks' => 'Flip blocks',
+        'outline_blocks' => 'Outline blocks',
+        'pill_bar' => 'Pill bar',
+        'ring_arc' => 'Ring arcs',
+        'ring_wedge' => 'Ring wedges',
     ];
 }
 
@@ -41,6 +55,13 @@ function timer_layout_blurbs(): array
         'badge_countdown' => 'Ribbon + countdown pair',
         'cinema_marquee' => 'Centered with marquee bars',
         'duo_blocks' => 'Days card + clock card',
+        'digit_outline' => 'Heavy stroked numerals',
+        'digit_plain' => 'Clean bold digits + separators',
+        'flip_blocks' => 'Solid tiles with a flip seam',
+        'outline_blocks' => 'Stroked tiles on a light field',
+        'pill_bar' => 'One capsule for all units',
+        'ring_arc' => 'Circular outlines with arcs',
+        'ring_wedge' => 'Solid circles with wedges',
     ];
 }
 

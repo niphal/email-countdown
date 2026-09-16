@@ -7,12 +7,12 @@ require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/lib/timer_templates.php';
 require_once dirname(__DIR__) . '/lib/timer_template_presets.php';
 require_once dirname(__DIR__) . '/lib/timer_fonts.php';
+require_once dirname(__DIR__) . '/lib/timer_design.php';
 require_once dirname(__DIR__) . '/timer.php';
 
 auth_start_session();
 auth_require_api_login();
 
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $workspaceId = auth_workspace_id();
 
 /**
@@ -36,6 +36,12 @@ function template_preview_style_from_request(int $workspaceId): array
             }
 
             return array_merge($preset, ['bg_image_file' => '']);
+        }
+        if (trim((string) ($body['name'] ?? '')) === '') {
+            $body['name'] = 'Preview';
+        }
+        if (!isset($body['default_label']) && isset($body['label'])) {
+            $body['default_label'] = $body['label'];
         }
         $payload = timer_template_sanitize_payload($body, false);
         $bgImage = (string) ($body['bg_image_file'] ?? '');
@@ -97,17 +103,24 @@ if ($fontPath === null) {
     exit;
 }
 
+$design = timer_design_normalize($style['design'] ?? $style['design_json'] ?? []);
+$labelFontPath = timer_ensure_ttf_path((string) ($design['label_font_key'] ?? 'open_sans')) ?: $fontPath;
+
 $w = (int) ($style['width'] ?? 480);
 $h = (int) ($style['height'] ?? 120);
 $bg = parse_hex((string) ($style['bg_color'] ?? '#1a1a2e'));
 $fg = parse_hex((string) ($style['text_color'] ?? '#eaeaea'));
 $ac = parse_hex((string) ($style['accent_color'] ?? '#e94560'));
-$label = (string) ($style['default_label'] ?? 'Brand preview');
+$label = (string) ($style['default_label'] ?? $style['label'] ?? 'Brand preview');
 $fontSizeMain = (int) ($style['font_size_main'] ?? 32);
 $layoutKey = (string) ($style['layout_key'] ?? 'segmented_pills');
 $bgImage = (string) ($style['bg_image_file'] ?? '');
 $overlayColor = (string) ($style['bg_overlay_color'] ?? '#000000');
 $overlayOpacity = (int) ($style['bg_overlay_opacity'] ?? 35);
+$transparent = ($design['bg_mode'] ?? 'solid') === 'transparent';
+if ($transparent) {
+    $bg = [248, 250, 252];
+}
 
 $now = time();
 $endsAt = $now + 86400 * 2 + 3600 * 5 + 60 * 12 + 34;
@@ -136,7 +149,9 @@ $im = render_timer_frame(
     $overlayColor,
     $overlayOpacity,
     null,
-    false
+    false,
+    $design,
+    $labelFontPath
 );
 imagepng($im);
 imagedestroy($im);

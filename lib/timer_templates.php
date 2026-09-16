@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/timer_fonts.php';
 require_once __DIR__ . '/timer_layouts.php';
 require_once __DIR__ . '/timer_background.php';
+require_once __DIR__ . '/timer_design.php';
 
 function timer_template_style_columns(): array
 {
@@ -12,6 +13,7 @@ function timer_template_style_columns(): array
         'bg_color', 'text_color', 'accent_color', 'width', 'height',
         'font_key', 'font_size_main', 'layout_key', 'default_label',
         'bg_image_file', 'bg_overlay_color', 'bg_overlay_opacity',
+        'design_json',
     ];
 }
 
@@ -43,6 +45,8 @@ function timer_template_normalize_row(array $row): array
     $row['font_size_main'] = (int) ($row['font_size_main'] ?? 32);
     $row['bg_overlay_opacity'] = (int) ($row['bg_overlay_opacity'] ?? 0);
     $row['is_default'] = (int) ($row['is_default'] ?? 0);
+    $row['design'] = timer_design_normalize($row['design_json'] ?? '{}');
+    $row['design_json'] = timer_design_encode($row['design']);
     $row['bg_image_url'] = timer_template_public_asset_url((string) ($row['bg_image_file'] ?? ''));
 
     return $row;
@@ -87,6 +91,15 @@ function timer_template_sanitize_payload(array $input, bool $isCreate): array
     $defaultLabel = mb_substr((string) ($input['default_label'] ?? ''), 0, 120);
     $overlayOpacity = max(0, min(100, (int) ($input['bg_overlay_opacity'] ?? 0)));
     $isDefault = !empty($input['is_default']) ? 1 : 0;
+    $designInput = $input['design'] ?? $input['design_json'] ?? [];
+    if (is_string($designInput)) {
+        $decoded = json_decode($designInput, true);
+        $designInput = is_array($decoded) ? $decoded : [];
+    }
+    if (!is_array($designInput)) {
+        $designInput = [];
+    }
+    $design = timer_design_sanitize($designInput);
 
     return [
         'name' => mb_substr($name, 0, 120),
@@ -103,6 +116,8 @@ function timer_template_sanitize_payload(array $input, bool $isCreate): array
         'bg_overlay_color' => $overlay,
         'bg_overlay_opacity' => $overlayOpacity,
         'is_default' => $isDefault,
+        'design' => $design,
+        'design_json' => timer_design_encode($design),
     ];
 }
 
@@ -137,6 +152,8 @@ function timer_template_apply_to_timer_fields(array $template): array
         'bg_image_file' => (string) ($template['bg_image_file'] ?? ''),
         'bg_overlay_color' => (string) ($template['bg_overlay_color'] ?? '#000000'),
         'bg_overlay_opacity' => (int) ($template['bg_overlay_opacity'] ?? 0),
+        'design' => timer_design_normalize($template['design'] ?? $template['design_json'] ?? []),
+        'design_json' => timer_design_encode(timer_design_normalize($template['design'] ?? $template['design_json'] ?? [])),
     ];
 }
 
